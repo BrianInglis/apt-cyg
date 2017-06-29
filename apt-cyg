@@ -25,7 +25,7 @@
 
 if [ ${BASH_VERSINFO:-0}${BASH_VERSINFO[1]} -lt 42 ]
 then
-  warn "Bash version 4.2+ required"
+  warn "bash: version $BASH_VERSINFO.${BASH_VERSINFO[1]}, version 4.2+ required"
   exit 3
 fi
 
@@ -155,22 +155,22 @@ function wget {
   then
     if [ $# -eq 1 ]
     then
-      /usr/bin/wget -nv -N "$@"	# make wget less verbose
+      /usr/bin/wget -nv -N "$@"		# make wget less verbose
     else
       /usr/bin/wget -nv -O "$1" "$2"
     fi
   elif [ -x /usr/bin/curl ]
   then
-    warn wget is not installed, using curl as fallback
+    msg "wget: not found; fallback to curl"
     if [ $# -eq 1 ]
     then
-      /usr/bin/curl -LsSO "$@"	# make curl less verbose
+      /usr/bin/curl -LsS -O "$@"	# make curl less verbose
     else
       /usr/bin/curl -LsS -o "$1" "$2"
     fi
   elif [ -x /usr/bin/lynx ]
   then
-    warn "wget is not installed, using lynx as fallback"
+    msg "wget: not found; fallback to lynx"
     if [ $# -eq 1 ]
     then
       /usr/bin/lynx -source "$1" > "${1##*/}"
@@ -179,7 +179,7 @@ function wget {
     fi
     set "${*: -1}"
   else
-    warn "Can't find wget, curl, or lynx installed"
+    warn "wget, curl, lynx: none installed; cannot download"
     exit 2
   fi
 }
@@ -234,9 +234,9 @@ function get-setup {
   fi
   if [ -e setup.ini ]
   then
-    echo Updated setup.ini
+    msg "setup.ini: updated"
   else
-    warn "Error updating setup.ini, reverting"
+    warn "setup.ini: cannot update, reverting"
     /bin/mv setup.ini-save setup.ini
     return 1
   fi
@@ -252,8 +252,12 @@ function check-packages {
   fi
 }
 
+function msg {
+  printf '%s: %s\n' "$prog" "$*"
+}
+
 function warn {
-  printf '\e[1;31m%s\e[m\n' "$*" >&2
+  msg "\e[1;31m$*\e[m" >&2
 }
 
 function apt-update {
@@ -266,7 +270,7 @@ function apt-update {
 
 function show-categories {
   find-workspace
-  echo Categories:
+  msg "Categories:"
   /bin/sed '/^category:\s*/!d;s///;s/\s\+/\n/g' setup.ini | sort -u | pr -5T
 }
 
@@ -372,10 +376,10 @@ function upgradable {
 	  size += p[5];
 	}
       }
-      for (u = 0; 9999 < size; ++u) { size /= 1024; }
-      if (size > 0) {
+      if (0 < size) {
+	  for (u = 1; 9999 < size; ++u) { size /= 1024; }
 	  print "Need to get",
-	    int(size) substr( "KMGTP", u ? u : 9, 1) "B of archives.";
+	      int( size ) substr( " KMGTP", u, 1) "B of archives.";
       }
     }
     ' arch="$arch" /etc/setup/installed.db setup.ini
@@ -449,7 +453,7 @@ function apt-listfiles {
 
     if [ -r /etc/setup/"$pkg".lst.gz ]
     then
-      /bin/zcat /etc/setup/"$pkg".lst.gz
+      /bin/zcat -- /etc/setup/"$pkg".lst.gz
     else
       download "$pkg"
       read dn bn < /tmp/dwn
@@ -474,7 +478,7 @@ function apt-show {
 
       END {
 	if (!fd)
-	  warn "Unable to locate package " query
+	  print "Cannot find package " query
 
 	exit !fd
       }
@@ -572,7 +576,7 @@ function download {
   /usr/bin/awk '$1 == pc' RS='\n\n@ ' FS='\n' pc="$pkg" setup.ini > desc
   if [ ! -s desc ]
   then
-    warn Unable to locate package $pkg
+    warn "$pkg: not found"
     return 1
   fi
 
@@ -582,7 +586,7 @@ function download {
   set -- $(/usr/bin/awk '$1 == "install:"' desc)
   if (( ! $# ))
   then
-    warn "Could not find 'install' in package '$pkg' description: obsolete package?"
+    warn "$pkg: 'install' not found in package description; obsolete package?"
     return 1
   fi
 
@@ -592,8 +596,8 @@ function download {
   # check the md5
   digest=$4
   case ${#digest} in
-   32) hash=md5sum    ;;
-  128) hash=sha512sum ;;
+   32) hash=/usr/bin/md5sum    ;;
+  128) hash=/usr/bin/sha512sum ;;
   esac
 
   /bin/mkdir -p "$cachedir/$mirrordir/$dn"
@@ -601,8 +605,16 @@ function download {
 
   if ! test -e $bn || ! $hash -c <<< "$digest $bn"
   then
+    msg "$pkg: downloading..."
     wget $mirror/$dn/$bn
-    $hash -c <<< "$digest $bn" || return
+    if [ ! -f $bn ]; then
+      warn "$pkg: download failed"
+      return 2
+    fi
+    if ! $hash -c <<< "$digest $bn"; then
+      warn "$pkg: hash does not match, download corrupted?"
+      return 1
+    fi
   fi
 
 # unsafe to lst here - required for remove
@@ -614,7 +626,7 @@ function download {
 
 function apt-search {
   check-packages
-  echo Searching downloaded packages...
+  msg "Searching downloaded packages..."
 
   for pkg in "${pks[@]}"
   do
@@ -649,15 +661,15 @@ function apt-install {
     # indent package loop code
     if /bin/grep -qe "^$pkg\s" -- /etc/setup/installed.db
     then
-      echo Package $pkg is already installed, skipping
+      msg "$pkg: package already installed, skipping"
       continue
     fi
     (( sbq++ )) && echo
-    echo Installing $pkg
+    msg "$pkg: installing"
 
     download $pkg
     read dn bn < /tmp/dwn
-    echo Unpacking...
+    msg "$pkg: unpacking..."
 
     cd "$cachedir/$mirrordir/$dn"
     tar -x -C / -f $bn
@@ -692,14 +704,14 @@ function apt-install {
 
     if [[ $requires ]]
     then
-      echo Package $pkg requires the following packages, installing:
-      echo $requires
+      msg "$pkg: requires the following packages, installing:"
+      msg "$requires"
 
       for package in $requires
       do
 	if /bin/grep -qe "^$package\s" -- /etc/setup/installed.db
 	then
-	  echo Package $package is already installed, skipping
+	  msg "$package: package already installed, skipping"
 	  continue
 	fi
 
@@ -709,10 +721,10 @@ function apt-install {
 
     if (( wr ))
     then
-      warn Some required packages were not installed, continuing
+      warn "Some required packages were not installed, continuing"
     fi
 
-    echo Package $pkg installed
+    msg "$pkg: installation complete"
 
   done
 
@@ -726,7 +738,7 @@ function apt-install {
     find /etc/postinstall -name '*.*sh' | \
     while read script
     do
-      echo Running $script
+      msg "$script: running..."
       $script
       # don't rename permanent postinstall scripts
       [[ $script != /etc/postinstall/[0-9a-z][pqrt][-_]*.*sh ]] && \
@@ -746,13 +758,13 @@ function apt-remove {
   do
     if ! /bin/grep -qe "^$pkg\s" -- setup/installed.db
     then
-      warn "Can't remove package '$pkg' which is not installed, skipping"
+      warn "$pkg: not installed; cannot remove, skipping"
       continue
     fi
 
     if [ ! -e setup/"$pkg".lst.gz ]
     then
-      warn "Can't remove package '$pkg' with no manifest, skipping"
+      warn "$pkg: no manifest found; cannot remove, skipping"
       continue
     fi
 
@@ -770,12 +782,12 @@ function apt-remove {
 
     if [ $? -ne 0 ]
     then
-      warn "Can't remove package '$pkg' used by $prog, skipping"
-      /bin/rm -- setup/"$pkg".lst
+      warn "$pkg: used by $prog; cannot remove, skipping"
+      /bin/rm -f -- setup/"$pkg".lst
       continue
     fi
 
-    echo Removing $pkg
+    msg "$pkg: removing..."
 
     if [ -x preremove/"$pkg".sh ]
     then
@@ -783,7 +795,7 @@ function apt-remove {
       if /usr/bin/id -G | /bin/egrep -qw '114|544|405504'; then
 	export CYGWINFORALL=-A
       fi
-      preremove/"$pkg".sh
+      preremove/"$pkg".sh && \
       /bin/rm preremove/"$pkg".sh
     fi
 
@@ -791,17 +803,18 @@ function apt-remove {
 
     for each in ${dt[*]}
     do
-      [ -f /$each ] && /bin/rm -- /$each
+      [ -n "$each" ] && [ -f /$each ] && /bin/rm -f -- /$each
     done
 
     for each in ${dt[*]}
     do
-      [ -d /$each ] && /bin/rmdir --ignore-fail-on-non-empty -- /$each
+      [ -n "$each" ] && [ -d /$each/ ] && \
+	/bin/rmdir --ignore-fail-on-non-empty -- /$each/
     done
 
     /bin/sed -i -e '/^'"$pkg"'\s/d' -- setup/installed.db
     /bin/rm -f -- postinstall/"$pkg".*sh* setup/"$pkg".lst*
-    echo Package $pkg removed
+    msg "$pkg: removed"
   done
 }
 
@@ -825,7 +838,7 @@ function cyg-source {
   /usr/bin/awk '$1 == query' RS='\n\n@ ' FS='\n' query="$pkg" setup.ini > desc
   if [ ! -s desc ]
   then
-    warn "Can't find package description for '$pkg'"
+    warn "$pkg: package description not found; obsolete package?"
     return 1
   fi
 
@@ -835,7 +848,7 @@ function cyg-source {
   set -- $(/usr/bin/awk '$1 == "source:"' desc)
   if (( ! $# ))
   then
-    warn "Can't find 'source' in package '$pkg' description: obsolete package?"
+    warn "$pkg: 'source' not found in package description; obsolete package?"
     return 1
   fi
 
@@ -861,11 +874,18 @@ function cyg-source {
   if ! test -e $bn || ! $hash -c <<< "$digest $bn"
   then
     wget $bn $mirror/$dn/$bn
-    $hash -c <<< "$digest $bn" || return
+    if [ ! -f $bn ]; then
+      warn "$pkg: download failed"
+      return 2
+    fi
+    if ! $hash -c <<< "$digest $bn"; then
+      warn "$pkg: hash does not match, download corrupted?"
+      return 1
+    fi
   fi
 
   if [ ! -v nounpack ]; then
-    echo Unpacking $pkg/$bn ...
+    msg "$pkg: $pkg/$bn; unpacking ..."
     tar -x -f $bn
 
     # can't build unless you unpack
@@ -876,10 +896,11 @@ function cyg-source {
 	cd $spdn/
 
 	if [ -r $pkg*.cygport ]; then
-	  requires=$(/bin/sed '/^[^#]*DEPEND=/!d;s//cygport /;s/['\'\"']//g' $pkg*.cygport)
+	  requires=$(/bin/sed '/^[^#]*DEPEND=/!d;s//cygport /;s/['\'\"']//g' \
+			$pkg*.cygport)
 	  requires=${requires:-cygport}
-	  echo Building $pkg requires the following packages, installing:
-	  echo $requires
+	  msg "$pkg: building requires the following packages, installing:"
+	  msg "$requires"
 	  $0 install --nopick $requires
 	  cygport $pkg*.cygport all
 	elif [ -r configure ]; then
@@ -890,15 +911,15 @@ function cyg-source {
 	  if [ -r Makefile ] || [ -r makefile ] || [ -r MAKEFILE ]; then
 	    /usr/bin/make
 	  else
-	    warn "Don't know how to build without Makefile"
+	    warn "$pkg: Makefile: not found; cannot build"
 	  fi
 	elif [ -r Makefile ] || [ -r makefile ] || [ -r MAKEFILE ]; then
 	    /usr/bin/make
 	else
-	  warn "Can't build without $pkg.cygport or configure or Makefile"
+	  warn "$pkg: Makefile, configure, .cygport: not found; cannot build"
 	fi
       else
-	warn "Can't find directory $pkg/$spdn/"
+	warn "$pkg: $pkg/$spdn/: directory not found"
       fi # source dir
     fi # -v build
   fi # ! -v nounpack
@@ -910,7 +931,7 @@ function apt-mirror {
   if [ "$pks" ]
   then
     /bin/sed -i '/^last-mirror$/{n;s|^.*$|\t'"$pks"'|}' /etc/setup/setup.rc
-    echo Mirror set to "$pks".
+    msg "$pks: mirror set."
     mirror="$pks"
   else
     /bin/sed '0,/^last-mirror$/d;s/^\s\+//;q' /etc/setup/setup.rc
@@ -922,7 +943,7 @@ function apt-cache {
   then
     vas=$(cygpath -aw "$pks")
     /bin/sed -i '/^last-cache$/{n;s|^.*$|\t'"${vas//\\/\\\\}"'|}' /etc/setup/setup.rc
-    echo Cache set to "$vas".
+    msg "$vas: cache set."
     cachedir="$pks"
     cache="$vas"
   else
