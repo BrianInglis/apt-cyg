@@ -25,8 +25,8 @@
 
 if [ ${BASH_VERSINFO:-0}${BASH_VERSINFO[1]} -lt 42 ]
 then
-  warn 'Bash version 4.2+ required'
-  exit 1
+  warn "Bash version 4.2+ required"
+  exit 3
 fi
 
 usage="\
@@ -164,13 +164,13 @@ function wget {
     warn wget is not installed, using curl as fallback
     if [ $# -eq 1 ]
     then
-      /usr/bin/curl -sSO "$@"	# make curl less verbose
+      /usr/bin/curl -LsSO "$@"	# make curl less verbose
     else
-      /usr/bin/curl -sSO -o "$1" "$2"
+      /usr/bin/curl -LsS -o "$1" "$2"
     fi
   elif [ -x /usr/bin/lynx ]
   then
-    warn wget is not installed, using lynx as fallback
+    warn "wget is not installed, using lynx as fallback"
     if [ $# -eq 1 ]
     then
       /usr/bin/lynx -source "$1" > "${1##*/}"
@@ -179,8 +179,8 @@ function wget {
     fi
     set "${*: -1}"
   else
-    warn none of wget, curl, or lynx are installed
-    exit 1
+    warn "Can't find wget, curl, or lynx installed"
+    exit 2
   fi
 }
 
@@ -188,14 +188,15 @@ function find-workspace {
   # default working directory and mirror
   
   # work wherever setup worked last, if possible
-  cache=$(sed '0,/^last-cache$/d;s/^\s\+//;q' /etc/setup/setup.rc)
+  cache=$(/bin/sed '0,/^last-cache$/d;s/^\s\+//;q' /etc/setup/setup.rc)
+  cachedir=$(cygpath "$cache")
 
-  mirror=$(sed '0,/^last-mirror$/d;s/^\s\+//;q' /etc/setup/setup.rc)
+  mirror=$(/bin/sed '0,/^last-mirror$/d;s/^\s\+//;q' /etc/setup/setup.rc)
   mirrordir=${mirror//\//%2f}
   mirrordir=${mirrordir//:/%3a}
 
-  mkdir -p "$cache/$mirrordir/$arch"
-  cd "$cache/$mirrordir/$arch"
+  /bin/mkdir -p "$cachedir/$mirrordir/$arch"
+  cd "$cachedir/$mirrordir/$arch"
   if [ -e setup.ini ]
   then
     return 0
@@ -235,7 +236,7 @@ function get-setup {
   then
     echo Updated setup.ini
   else
-    warn Error updating setup.ini, reverting
+    warn "Error updating setup.ini, reverting"
     /bin/mv setup.ini-save setup.ini
     return 1
   fi
@@ -246,7 +247,7 @@ function check-packages {
   then
     return 0
   else
-    echo No packages found.
+    warn "No packages found."
     return 1
   fi
 }
@@ -266,7 +267,7 @@ function apt-update {
 function show-categories {
   find-workspace
   echo Categories:
-  sed '/^category:\s*/!d;s///;s/\s\+/\n/g' setup.ini | sort -u | pr -5T
+  /bin/sed '/^category:\s*/!d;s///;s/\s\+/\n/g' setup.ini | sort -u | pr -5T
 }
 
 function apt-category {
@@ -275,7 +276,7 @@ function apt-category {
 
   for pkg in "${pks[@]}"
   do
-    awk '
+    /usr/bin/awk '
     query ~ /^[a-z]/ {
       query = toupper( substr( query, 1, 1)) substr( query, 2)
     }
@@ -291,7 +292,7 @@ function apt-category {
 
 function upgradable {
   find-workspace
-  awk '
+  /usr/bin/awk '
     # installed.db
     FNR == NR && FNR == 1 { RS = "\n+"; FS = "[ \t]+" }
     # installed.db fields: pkg tar-bz2 pick/manual
@@ -362,6 +363,7 @@ function upgradable {
       # fields: tar-bz2 pick ver arch-tar-xz size sha512sum depends...
 	nf = split( pkg[u], p, " ");
 	if (inst[u,"file"] != p[1]) {
+	  arch = substr( p[4], 1, index( p[4], "/") - 1);
 	  l1 = length( u ) + 2;
 	  l2 = length( inst[u,"file"] ) - l1 - length( ".tar.bz2" ) + 1;
 	  print u, p[3], arch, "[upgradable from:",
@@ -388,8 +390,8 @@ function apt-list {
   [ -v installed ] && [ -z "$pks" ] && pks=("?")	# installed if option
 
   # convert globs to regex pattern
-  pc=$(sed 's/?/./g;s/\*/.*/g;s/\s/|/g' <<< "${pks[@]}")
-  awk '
+  pc=$(/bin/sed 's/\./\\./g;s/?/./g;s/\*/.*/g;s/\s/|/g' <<< "${pks[@]}")
+  /usr/bin/awk '
     $1 ~ query && NF == 3 {
       l1 = length( $1 );
       l2 = length( $2 );
@@ -412,8 +414,8 @@ function apt-listall {
   find-workspace
 
   # convert globs to regex pattern
-  pc=$(sed 's/?/./g;s/\*/.*/g;s/\s/|/g' <<< "${pks[@]}")
-  awk '
+  pc=$(/bin/sed 's/\./\\./g;s/?/./g;s/\*/.*/g;s/\s/|/g' <<< "${pks[@]}")
+  /usr/bin/awk '
     $1 ~ query {
       v = arch = "";
 
@@ -447,11 +449,11 @@ function apt-listfiles {
 
     if [ -r /etc/setup/"$pkg".lst.gz ]
     then
-      zcat /etc/setup/"$pkg".lst.gz
+      /bin/zcat /etc/setup/"$pkg".lst.gz
     else
       download "$pkg"
       read dn bn < /tmp/dwn
-      tar tf "$cache/$mirrordir/$dn/$bn"
+      tar tf "$cachedir/$mirrordir/$dn/$bn"
     fi
 
   done
@@ -464,7 +466,7 @@ function apt-show {
   for pkg in "${pks[@]}"
   do
     (( notfirst++ )) && echo
-    awk '
+    /usr/bin/awk '
       $1 == query {
 	print $0
 	fd++
@@ -472,7 +474,7 @@ function apt-show {
 
       END {
 	if (!fd)
-	  print "Unable to locate package " query
+	  warn "Unable to locate package " query
 
 	exit !fd
       }
@@ -486,7 +488,7 @@ function apt-depends {
 
   for pkg in "${pks[@]}"
   do
-    awk '
+    /usr/bin/awk '
       @include "join"
       $1 == "@" {
 	apg = $2
@@ -521,7 +523,7 @@ function apt-rdepends {
 
   for pkg in "${pks[@]}"
   do
-    awk '
+    /usr/bin/awk '
       @include "join"
       $1 == "@" {
 	apg = $2
@@ -567,21 +569,21 @@ function download {
   pkg="$1"
   # look for package and save desc file
 
-  awk '$1 == pc' RS='\n\n@ ' FS='\n' pc="$pkg" setup.ini > desc
+  /usr/bin/awk '$1 == pc' RS='\n\n@ ' FS='\n' pc="$pkg" setup.ini > desc
   if [ ! -s desc ]
   then
     warn Unable to locate package $pkg
-    exit 1
+    return 1
   fi
 
   # download the bz2 or xz file
 
   # pick the latest version, which comes first
-  set -- $(awk '$1 == "install:"' desc)
+  set -- $(/usr/bin/awk '$1 == "install:"' desc)
   if (( ! $# ))
   then
     warn "Could not find 'install' in package '$pkg' description: obsolete package?"
-    exit 1
+    return 1
   fi
 
   dn=${2%/*}
@@ -594,19 +596,19 @@ function download {
   128) hash=sha512sum ;;
   esac
 
-  mkdir -p "$cache/$mirrordir/$dn"
-  cd "$cache/$mirrordir/$dn"
+  /bin/mkdir -p "$cachedir/$mirrordir/$dn"
+  cd "$cachedir/$mirrordir/$dn"
 
   if ! test -e $bn || ! $hash -c <<< "$digest $bn"
   then
     wget $mirror/$dn/$bn
-    $hash -c <<< "$digest $bn" || exit
+    $hash -c <<< "$digest $bn" || return
   fi
 
 # unsafe to lst here - required for remove
 # tar tf $bn | gzip > /etc/setup/"$pkg".lst.gz
   cd ~-
-  /bin/mv desc "$cache/$mirrordir/$dn"
+  /bin/mv desc "$cachedir/$mirrordir/$dn"
   echo $dn $bn > /tmp/dwn
 }
 
@@ -616,26 +618,21 @@ function apt-search {
 
   for pkg in "${pks[@]}"
   do
-    key=$(type -P "$pkg" | sed 's./..')
+    key=$(type -P "$pkg" | /bin/sed 's./..')
     [[ $key ]] || key=$pkg
-
-    for manifest in /etc/setup/*.lst.gz
-    do
-      if zgrep -qe "$key" -- $manifest
-      then
-        package=${manifest#/etc/setup/}
-        package=${package%.lst.gz}
-        echo $package
-      fi
-    done
+    keys+=("$key")
   done
+
+  pc=$(/bin/sed 's/\./\\./g;s/?/./g;s/\*/.*/g;s/\s/|/g' <<< "${keys[@]}")
+  /bin/zegrep -le "$pc" -- /etc/setup/*.lst.gz | \
+  /bin/sed 's|^/etc/setup/||;s|\.lst\.gz$||'
 }
 
 function apt-searchall {
   for pkg in "${pks[@]}"
   do
     wget /tmp/matches "https://cygwin.com/cgi-bin2/package-grep.cgi?grep=$pkg&arch=$arch&text=1"
-    awk '
+    /usr/bin/awk '
     NR == 1 || mc[$1]++ || /-debuginfo-/ || /^cygwin32-/ {next}
     {print $1}
     ' FS='-[[:digit:]]' /tmp/matches
@@ -650,7 +647,7 @@ function apt-install {
   for pkg in "${pks[@]}"
   do
     # indent package loop code
-    if grep -qe "^$pkg\s" -- /etc/setup/installed.db
+    if /bin/grep -qe "^$pkg\s" -- /etc/setup/installed.db
     then
       echo Package $pkg is already installed, skipping
       continue
@@ -662,14 +659,14 @@ function apt-install {
     read dn bn < /tmp/dwn
     echo Unpacking...
 
-    cd "$cache/$mirrordir/$dn"
+    cd "$cachedir/$mirrordir/$dn"
     tar -x -C / -f $bn
     # safe to lst here - required for remove
     tar -tf $bn | gzip > /etc/setup/"$pkg".lst.gz
     # update the package database
     [ -v nopick ] && pick=0 || pick=1
     # ensure standard collating sequence regardless of locale settings
-    LC_ALL=C awk '
+    LC_ALL=C /usr/bin/awk '
     ins != 1 && pkg < $1 {
       print pkg, bz, pick
       ins = 1
@@ -689,7 +686,7 @@ function apt-install {
     [ -v nodeps ] && continue
 
     # recursively install required packages
-    requires=$(awk '$1=="requires", $0=$2' FS=': ' desc)
+    requires=$(/usr/bin/awk '$1=="requires", $0=$2' FS=': ' desc)
     cd ~-
     wr=0
 
@@ -700,7 +697,7 @@ function apt-install {
 
       for package in $requires
       do
-	if grep -qe "^$package\s" -- /etc/setup/installed.db
+	if /bin/grep -qe "^$package\s" -- /etc/setup/installed.db
 	then
 	  echo Package $package is already installed, skipping
 	  continue
@@ -721,6 +718,10 @@ function apt-install {
 
   # run all postinstall scripts after all packages installed
   if [ ! -v noscripts ] && [ -v ins ] && [ $ins -gt 0 ]; then
+    # set CYGWINFORALL to -A for use as cygpath argument in scripts if elevated
+    if /usr/bin/id -G | /bin/egrep -qw '114|544|405504'; then
+      export CYGWINFORALL=-A
+    fi
     # allow dash scripts
     find /etc/postinstall -name '*.*sh' | \
     while read script
@@ -737,9 +738,8 @@ function apt-install {
 function apt-remove {
   check-packages
   cd /etc
-  $0 category Base			| \
-  /usr/bin/xargs $0 depends		| \
-  /bin/sed -e 's/\s*>\s*/\n/g'		| \
+  /bin/cygcheck awk bash bunzip2 grep gzip mv rm sed tar unxz | \
+  /bin/sed 's|^.*[/\\]||' | \
   /usr/bin/sort -u -o setup/essential.lst
 
   for pkg in "${pks[@]}"
@@ -756,9 +756,22 @@ function apt-remove {
       continue
     fi
 
-    if /bin/grep -qxe "^$pkg" -- setup/essential.lst
+    /bin/gzip -dk -- setup/"$pkg".lst.gz
+
+    /usr/bin/awk '
+    NR == FNR {
+      if ($NF) ess[$NF]
+      next
+    }
+    $NF in ess {
+      exit 1
+    }
+    ' FS='[/\\\\]' setup/{essential,$pkg}.lst
+
+    if [ $? -ne 0 ]
     then
-      warn "Can't remove package '$pkg' in Cygwin Base, skipping"
+      warn "Can't remove package '$pkg' used by $prog, skipping"
+      /bin/rm -- setup/"$pkg".lst
       continue
     fi
 
@@ -766,6 +779,10 @@ function apt-remove {
 
     if [ -x preremove/"$pkg".sh ]
     then
+    # set CYGWINFORALL to -A for use as cygpath argument in scripts if elevated
+      if /usr/bin/id -G | /bin/egrep -qw '114|544|405504'; then
+	export CYGWINFORALL=-A
+      fi
       preremove/"$pkg".sh
       /bin/rm preremove/"$pkg".sh
     fi
@@ -805,21 +822,21 @@ function cyg-source {
   pkg=$1
   # look for package and save desc file
 
-  awk '$1 == pc' RS='\n\n@ ' FS='\n' pc=$pkg setup.ini > desc
+  /usr/bin/awk '$1 == query' RS='\n\n@ ' FS='\n' query="$pkg" setup.ini > desc
   if [ ! -s desc ]
   then
-    echo Unable to locate package $pkg
-    exit 1
+    warn "Can't find package description for '$pkg'"
+    return 1
   fi
 
   # download and unpack the bz2 or xz file
 
   # pick the latest version, which comes first
-  set -- $(awk '$1 == "source:"' desc)
+  set -- $(/usr/bin/awk '$1 == "source:"' desc)
   if (( ! $# ))
   then
-    echo 'Could not find "source" in package description: obsolete package?'
-    exit 1
+    warn "Can't find 'source' in package '$pkg' description: obsolete package?"
+    return 1
   fi
 
   dn=${2%/*}
@@ -836,7 +853,7 @@ function cyg-source {
 
   # don't create sub-directory if not unpacking
   if [ ! -v nounpack ]; then
-    mkdir -p $pkg
+    /bin/mkdir -p $pkg
     cd $pkg
   fi
 
@@ -844,7 +861,7 @@ function cyg-source {
   if ! test -e $bn || ! $hash -c <<< "$digest $bn"
   then
     wget $bn $mirror/$dn/$bn
-    $hash -c <<< "$digest $bn" || exit
+    $hash -c <<< "$digest $bn" || return
   fi
 
   if [ ! -v nounpack ]; then
@@ -859,7 +876,7 @@ function cyg-source {
 	cd $spdn/
 
 	if [ -r $pkg*.cygport ]; then
-	  requires=$(sed '/^[^#]*DEPEND=/!d;s//cygport /;s/['\'\"']//g' $pkg*.cygport)
+	  requires=$(/bin/sed '/^[^#]*DEPEND=/!d;s//cygport /;s/['\'\"']//g' $pkg*.cygport)
 	  requires=${requires:-cygport}
 	  echo Building $pkg requires the following packages, installing:
 	  echo $requires
@@ -871,17 +888,17 @@ function cyg-source {
 	  [ -x configure ] && ./configure
 
 	  if [ -r Makefile ] || [ -r makefile ] || [ -r MAKEFILE ]; then
-	    make
+	    /usr/bin/make
 	  else
-	    echo Don\'t know how to build without Makefile
+	    warn "Don't know how to build without Makefile"
 	  fi
 	elif [ -r Makefile ] || [ -r makefile ] || [ -r MAKEFILE ]; then
-	    make
+	    /usr/bin/make
 	else
-	  echo Can\'t build without $pkg.cygport or configure or Makefile
+	  warn "Can't build without $pkg.cygport or configure or Makefile"
 	fi
       else
-	echo Can\'t find directory $pkg/$spdn/
+	warn "Can't find directory $pkg/$spdn/"
       fi # source dir
     fi # -v build
   fi # ! -v nounpack
@@ -892,10 +909,11 @@ function cyg-source {
 function apt-mirror {
   if [ "$pks" ]
   then
-    sed -i '/^last-mirror$/{n;s|^.*$|\t'"$pks"'|}' /etc/setup/setup.rc
+    /bin/sed -i '/^last-mirror$/{n;s|^.*$|\t'"$pks"'|}' /etc/setup/setup.rc
     echo Mirror set to "$pks".
+    mirror="$pks"
   else
-    sed '0,/^last-mirror$/d;s/^\s\+//;q' /etc/setup/setup.rc
+    /bin/sed '0,/^last-mirror$/d;s/^\s\+//;q' /etc/setup/setup.rc
   fi
 }
 
@@ -903,10 +921,12 @@ function apt-cache {
   if [ "$pks" ]
   then
     vas=$(cygpath -aw "$pks")
-    sed -i '/^last-cache$/{n;s|^.*$|\t'"${vas//\\/\\\\}"'|}' /etc/setup/setup.rc
+    /bin/sed -i '/^last-cache$/{n;s|^.*$|\t'"${vas//\\/\\\\}"'|}' /etc/setup/setup.rc
     echo Cache set to "$vas".
+    cachedir="$pks"
+    cache="$vas"
   else
-    sed '0,/^last-cache$/d;s/^\s\+//;q' /etc/setup/setup.rc
+    /bin/sed '0,/^last-cache$/d;s/^\s\+//;q' /etc/setup/setup.rc
   fi
 }
 
@@ -926,49 +946,54 @@ until [ $# -eq 0 ]
 do
   case "$1" in
 
-    -b|--build|-c|--compile)
+    -b | --build | -c | --compile)
       build=1
       shift
     ;;
 
-    -d|--download|--download-only)
+    -d | --download | --download-only)
       nounpack=1
       shift
     ;;
 
-    -?|-h|--help)
+    -? | -h | --help)
       printf "$usage"
       exit
     ;;
 
-    -i|--installed)
+    -i | --installed)
       installed=1
       shift
     ;;
 
-    -n|--nodeps)
+    -n | --nodeps)
       nodeps=1
       shift
     ;;
 
-    -p|--nopick)
+    -p | --nopick)
       nopick=1
       shift
     ;;
 
-    -s|--noscripts)
+    -s | --noscripts)
       noscripts=1
       shift
     ;;
 
-    -u|--upgradable)
+    -u | --upgradable)
       upgradable=1
       shift
     ;;
 
-    -V|--version)
+    -V | --version)
       printf "$version"
       exit
+    ;;
+
+# end of options
+    --)
+      shift
     ;;
 
     update)
@@ -976,19 +1001,14 @@ do
       shift
     ;;
 
-    list|listall|show|search|searchall|category|listfiles|install|download|\
-    source|remove|depends|rdepends|mirror|cache)
-      if [[ $command ]]
+    list | listall | show | search | searchall | category | listfiles | \
+    install | download | source | remove | depends | rdepends | mirror | cache)
+      if [[ "$command" ]]
       then
         pks+=("$1")
       else
         command=$1
       fi
-      shift
-    ;;
-
-# end of options
-    --)
       shift
     ;;
 
@@ -1002,11 +1022,12 @@ done
 set -a
 readonly arch=${HOSTTYPE/i[3-7]/x}
 
-if type -t apt-$command | grep -qe function --
+if type -t apt-$command | /bin/grep -qe function --
 then
   apt-$command
 else
   printf "$usage"
+  exit 1
 fi
 
 # vi:sts=2 sw=2:
