@@ -23,12 +23,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-if [ ${BASH_VERSINFO:-0}${BASH_VERSINFO[1]} -lt 42 ]
-then
-  warn "bash: version $BASH_VERSINFO.${BASH_VERSINFO[1]}, version 4.2+ required"
-  exit 3
-fi
-
 usage="\
 NAME
   apt-cyg - package manager utility
@@ -150,37 +144,53 @@ The MIT License (MIT)
 Copyright (c) 2005-13 Stephen Jungels
 "
 
+function msg {
+  printf '%s: %s\n' "$prog" "$*"
+}
+
+function warn {
+  printf '\e[1;31m%s: %s\e[m\n' "$prog" "$*" >&2
+}
+
 function wget {
-  if [ -x /usr/bin/wget ]
+  case $fb in
+    wget)
+      if [ $# -eq 1 ]
+      then
+	$wget -nv -N -t 1 -T 1 "$@"	# non-verbose, 1 try, 1s timeout
+      else
+	$wget -nv -t 1 -T 1 -O "$1" "$2"
+      fi
+    ;;
+    curl)
+      if [ $# -eq 1 ]
+      then
+	$wget -LsS -O "$@"	# make curl less verbose
+      else
+	$wget -LsS -o "$1" "$2"
+      fi
+    ;;
+    lynx)
+      if [ $# -eq 1 ]
+      then
+	$wget -source "$1" > "${1##*/}"
+      else
+	$wget -source "$2" > "$1"
+      fi
+      set "${*: -1}"
+    ;;
+  esac
+
+  rc=$?
+
+  if [ $rc -ne 0 ]
   then
     if [ $# -eq 1 ]
     then
-      /usr/bin/wget -nv -N "$@"		# make wget less verbose
+      warn "wget: rc $rc: $1"
     else
-      /usr/bin/wget -nv -O "$1" "$2"
+      warn "wget: rc $rc: $2 to $1"
     fi
-  elif [ -x /usr/bin/curl ]
-  then
-    msg "wget: not found; fallback to curl"
-    if [ $# -eq 1 ]
-    then
-      /usr/bin/curl -LsS -O "$@"	# make curl less verbose
-    else
-      /usr/bin/curl -LsS -o "$1" "$2"
-    fi
-  elif [ -x /usr/bin/lynx ]
-  then
-    msg "wget: not found; fallback to lynx"
-    if [ $# -eq 1 ]
-    then
-      /usr/bin/lynx -source "$1" > "${1##*/}"
-    else
-      /usr/bin/lynx -source "$2" > "$1"
-    fi
-    set "${*: -1}"
-  else
-    warn "wget, curl, lynx: none installed; cannot download"
-    exit 2
   fi
 }
 
@@ -207,39 +217,88 @@ function find-workspace {
 }
 
 function get-setup {
+  [ -x /usr/bin/gnupg ] && gpg=/usr/bin/gnupg
+  [ -x /usr/bin/gnupg2 ] && gpg=/usr/bin/gnupg2
+  [ -x /usr/bin/gpg ] && gpg=/usr/bin/gpg
+  [ -x /usr/bin/gpg2 ] && gpg=/usr/bin/gpg2
+  if [ -z "$gpg" ]; then
+    warn "/usr/bin/g[nu]pg[2]: not found, need to install gnupg2 or gnupg"
+    exit 2
+  fi
   [ -e setup ] && /bin/mv setup setup.save
   [ ! -e setup.ini ] && touch setup.ini
   /bin/mv setup.ini setup.ini-save
-  if [ ! -e setup ] && [ -x /usr/bin/unxz ]
-  then
+  wget https://cygwin.com/key/pubring.asc
+  if [ ! -r pubring.asc ] || [ ! -s pubring.asc ]; then
+    warn "pubring.asc: not found, cannot verify setup signatures"
+    exit 2
+  fi
+  gpgopts="--batch --no-secmem-warning --keyring ./pubring.asc --verify --"
+  hash=/usr/bin/sha512sum
+  sum=sha512.sum
+  wget $mirror$arch/$sum
+  if [ ! -r $sum ] || [ ! -s $sum ]; then
+    warn "sha512.sum: not found, cannot check setup hashes"
+    exit 2
+  fi
+  wget $mirror$arch/setup.ini.sig
+  if [ ! -r setup.ini.sig ] || [ ! -s setup.ini.sig ]; then
+    warn "setup.ini.sig: not found, cannot verify setup.ini signature"
+    exit 2
+  fi
+  if [ ! -e setup ] && [ -x /usr/bin/unxz ]; then
+    wget $mirror$arch/setup.xz.sig
     wget $mirror$arch/setup.xz
-    if [ -f setup.xz ]
-    then
-      /usr/bin/unxz setup.xz
+    if [ -r setup.xz.sig ] && [ -s setup.xz.sig ] && \
+	[ -r setup.xz ] && [ -s setup.xz ]; then
+      msg "gpg: setup.xz: verifying sig setup.xz.sig, key pubring.asc..."
+      if ! $gpg $gpgopts setup.xz.sig setup.xz; then
+	warn "gpg: setup.xz: verify rc $?, sig setup.xz.sig, key pubring.asc"
+      else
+	if ! /usr/bin/unxz -dfk -- setup.xz; then
+	  warn "unxz: setup.xz: decompress failed, rc $?"
+	fi
+      fi
     fi
   fi
   if [ ! -e setup ] && [ -x /usr/bin/bunzip2 ]
   then
+    wget $mirror$arch/setup.bz2.sig
     wget $mirror$arch/setup.bz2
-    if [ -e setup.bz2 ]
-    then
-      /usr/bin/bunzip2 setup.bz2
+    if [ -r setup.bz2.sig ] && [ -s setup.bz2.sig ] && \
+	[ -r setup.bz2 ] && [ -s setup.bz2 ]; then
+      msg "gpg: setup.bz2: verifying sig setup.bz2.sig, key pubring.asc..."
+      if ! $gpg $gpgopts setup.bz2.sig setup.bz2; then
+	warn "gpg: setup.bz2: verify rc $?, sig setup.bz2.sig, key pubring.asc"
+      else
+	if ! /usr/bin/bunzip2 -dfk -- setup.bz2; then
+	  warn "bunzip2: setup.bz2: decompress failed, rc $?"
+	fi
+      fi
     fi
   fi
-  if [ -e setup ]
-  then
-    /bin/mv setup setup.ini
+  if [ -e setup ]; then
+    /bin/mv -f setup setup.ini
   else
     wget $mirror$arch/setup.ini
   fi
-  if [ -e setup.ini ]
-  then
-    msg "setup.ini: updated"
-  else
-    warn "setup.ini: cannot update, reverting"
-    /bin/mv setup.ini-save setup.ini
-    return 1
+  if [ ! -r setup.ini ] || [ ! -s setup.ini ]; then
+    warn "setup.ini: not found; cannot update, reverting"
+    /bin/mv -f -- setup.ini-save setup.ini
+    return 2
   fi
+  msg "gpg: setup.ini: verifying sig setup.ini.sig, key pubring.asc..."
+  if ! $gpg $gpgopts setup.ini.sig setup.ini; then
+    gpgrc=$?
+    warn "gpg: setup.ini: verify rc $?, sig setup.ini.sig, key pubring.asc"
+    exit $gpgrc
+  fi
+  msg "sha512sum: $sum: checking hashes..."
+  if ! $hash -cw --ignore-missing -- $sum; then
+    warn "$sum: hash does not match, download corrupted?"
+    exit 1
+  fi
+  msg "setup.ini: up to date"
 }
 
 function check-packages {
@@ -250,14 +309,6 @@ function check-packages {
     warn "No packages found."
     return 1
   fi
-}
-
-function msg {
-  printf '%s: %s\n' "$prog" "$*"
-}
-
-function warn {
-  msg "\e[1;31m$*\e[m" >&2
 }
 
 function apt-update {
@@ -296,7 +347,7 @@ function apt-category {
 
 function upgradable {
   find-workspace
-  /usr/bin/awk '
+  /usr/bin/gawk '
     # installed.db
     FNR == NR && FNR == 1 { RS = "\n+"; FS = "[ \t]+" }
     # installed.db fields: pkg tar-bz2 pick/manual
@@ -370,47 +421,21 @@ function upgradable {
 	  arch = substr( p[4], 1, index( p[4], "/") - 1);
 	  l1 = length( u ) + 2;
 	  l2 = length( inst[u,"file"] ) - l1 - length( ".tar.bz2" ) + 1;
-	  print u, p[3], arch, "[upgradable from:",
-			substr( inst[u,"file"], l1, l2) ",",
-			(inst[u,"pick"] ? "manual" : "automatic" ) "]";
+	  pkgs[u] = sprintf( "%s %s %s [upgradable from: %s, %s]",
+			u, p[3], arch, substr( inst[u,"file"], l1, l2),
+			(inst[u,"pick"] ? "manual" : "automatic"));
 	  size += p[5];
 	}
       }
       if (0 < size) {
-	  for (u = 1; 9999 < size; ++u) { size /= 1024; }
-	  print "Need to get",
-	      int( size ) substr( " KMGTP", u, 1) "B of archives.";
+	nu = asort( pkgs );
+	for (u = 1; u <= nu; ++u) { print pkgs[u]; }
+	for (u = 1; 9999 < size; ++u) { size /= 1024; }
+	printf( "Need to get %d%sB of archives.\n",
+	      int( size ), substr( " KMGTP", u, 1)) > "/dev/stderr";
       }
     }
     ' arch="$arch" /etc/setup/installed.db setup.ini
-}
-
-function apt-list {
-  local sbq
-  sbq=1
-
-  [ -v upgradable ] && upgradable && return		# upgradable if option
-
-  [ -v installed ] && [ -z "$pks" ] && pks=("?")	# installed if option
-
-  # convert globs to regex pattern
-  pc=$(/bin/sed 's/\./\\./g;s/?/./g;s/\*/.*/g;s/\s/|/g' <<< "${pks[@]}")
-  /usr/bin/awk '
-    $1 ~ query && NF == 3 {
-      l1 = length( $1 );
-      l2 = length( $2 );
-      v = substr( $2, l1 + 2, l2 - l1 - length( ".tar.bz2" ) - 1);
-      print $1, v, arch, "[installed, " ($3 ? "manual" : "automatic") "]";
-      ++fd;
-    }
-
-    END {
-      exit !fd;			# success if found else failure
-    }
-  ' arch="$arch" query="$pc" /etc/setup/installed.db && sbq=$?
-
-# default to no packages not all packages like apt
-  [ $sbq -eq 0 ] || apt-listall		# if none installed check all packages
 }
 
 function apt-listall {
@@ -442,6 +467,34 @@ function apt-listall {
     ' RS='\n\n@ ' FS='\n' query="$pc" setup.ini
 }
 
+function apt-list {
+  local sbq
+  sbq=1
+
+  [ -v upgradable ] && upgradable && return		# upgradable if option
+
+  [ -v installed ] && [ -z "$pks" ] && pks=("?")	# installed if option
+
+  # convert globs to regex pattern
+  pc=$(/bin/sed 's/\./\\./g;s/?/./g;s/\*/.*/g;s/\s/|/g' <<< "${pks[@]}")
+  /usr/bin/awk '
+    $1 ~ query && NF == 3 {
+      l1 = length( $1 );
+      l2 = length( $2 );
+      v = substr( $2, l1 + 2, l2 - l1 - length( ".tar.bz2" ) - 1);
+      print $1, v, arch, "[installed, " ($3 ? "manual" : "automatic") "]";
+      ++fd;
+    }
+
+    END {
+      exit !fd;			# success if found else failure
+    }
+  ' arch="$arch" query="$pc" /etc/setup/installed.db && sbq=$?
+
+# default to no packages not all packages like apt
+  [ $sbq -eq 0 ] || apt-listall		# if none installed check all packages
+}
+
 function apt-listfiles {
   check-packages
   find-workspace
@@ -457,7 +510,7 @@ function apt-listfiles {
     else
       download "$pkg"
       read dn bn < /tmp/dwn
-      tar tf "$cachedir/$mirrordir/$dn/$bn"
+      /bin/tar -t -f "$cachedir/$mirrordir/$dn/$bn" --
     fi
 
   done
@@ -557,17 +610,6 @@ function apt-rdepends {
   done
 }
 
-function apt-download {
-  check-packages
-  find-workspace
-  local pkg sbq
-  for pkg in "${pks[@]}"
-  do
-    (( sbq++ )) && echo
-    download "$pkg"
-  done
-}
-
 function download {
   local pkg digest digactual
   pkg="$1"
@@ -596,20 +638,30 @@ function download {
   # check the md5
   digest=$4
   case ${#digest} in
-   32) hash=/usr/bin/md5sum    ;;
-  128) hash=/usr/bin/sha512sum ;;
+   32) hash=/usr/bin/md5sum; sum=md5.sum;;
+  128) hash=/usr/bin/sha512sum; sum=sha512.sum;;
   esac
 
   /bin/mkdir -p "$cachedir/$mirrordir/$dn"
   cd "$cachedir/$mirrordir/$dn"
 
-  if ! test -e $bn || ! $hash -c <<< "$digest $bn"
+  if ! test -s $bn || ! $hash -c <<< "$digest $bn"
   then
     msg "$pkg: downloading..."
-    wget $mirror/$dn/$bn
-    if [ ! -f $bn ]; then
-      warn "$pkg: download failed"
+    wget $mirror$dn/$sum
+    if [ ! -f $sum ]; then
+      warn "$pkg: $sum: download failed"
       return 2
+    fi
+    wget $mirror$dn/$bn
+    if [ ! -f $bn ]; then
+      warn "$pkg: $bn: download failed"
+      return 2
+    fi
+    msg "$pkg: $sum: checking hashes..."
+    if ! $hash -cw --ignore-missing -- $sum; then
+      warn "$pkg: $sum: hash does not match, download corrupted?"
+      exit 1
     fi
     if ! $hash -c <<< "$digest $bn"; then
       warn "$pkg: hash does not match, download corrupted?"
@@ -618,10 +670,21 @@ function download {
   fi
 
 # unsafe to lst here - required for remove
-# tar tf $bn | gzip > /etc/setup/"$pkg".lst.gz
+# /bin/tar -t -f $bn -- | gzip > /etc/setup/"$pkg".lst.gz
   cd ~-
-  /bin/mv desc "$cachedir/$mirrordir/$dn"
+  /bin/mv -f -- desc  "$cachedir/$mirrordir/$dn/"
   echo $dn $bn > /tmp/dwn
+}
+
+function apt-download {
+  check-packages
+  find-workspace
+  local pkg sbq
+  for pkg in "${pks[@]}"
+  do
+    (( sbq++ )) && echo
+    download "$pkg"
+  done
 }
 
 function apt-search {
@@ -672,9 +735,9 @@ function apt-install {
     msg "$pkg: unpacking..."
 
     cd "$cachedir/$mirrordir/$dn"
-    tar -x -C / -f $bn
+    /bin/tar -x -C / -f $bn --
     # safe to lst here - required for remove
-    tar -tf $bn | gzip > /etc/setup/"$pkg".lst.gz
+    /bin/tar -t -f $bn -- | gzip > /etc/setup/"$pkg".lst.gz
     # update the package database
     [ -v nopick ] && pick=0 || pick=1
     # ensure standard collating sequence regardless of locale settings
@@ -687,10 +750,10 @@ function apt-install {
     END {
       if (ins != 1) print pkg, bz, pick
     }
-    ' pkg="$pkg" bz=$bn pick=$pick /etc/setup/installed.db \
+    ' pkg="$pkg" bz=${bn/.xz/.bz2} pick=$pick /etc/setup/installed.db \
 					> /etc/setup/installed.$$
-    /bin/mv /etc/setup/installed.db /etc/setup/installed.db-save
-    /bin/mv /etc/setup/installed.$$ /etc/setup/installed.db
+    /bin/mv -f /etc/setup/installed.db /etc/setup/installed.db-save
+    /bin/mv -f /etc/setup/installed.$$ /etc/setup/installed.db
     [ ! -v ins ] && ins=0
     (( ins++ ))
 
@@ -734,6 +797,7 @@ function apt-install {
     if /usr/bin/id -G | /bin/egrep -qw '114|544|405504'; then
       export CYGWINFORALL=-A
     fi
+    msg "postinstall scripts: running..."
     # allow dash scripts
     find /etc/postinstall -name '*.*sh' | \
     while read script
@@ -795,38 +859,28 @@ function apt-remove {
       if /usr/bin/id -G | /bin/egrep -qw '114|544|405504'; then
 	export CYGWINFORALL=-A
       fi
-      preremove/"$pkg".sh && \
-      /bin/rm preremove/"$pkg".sh
+      msg "$pkg: /etc/preremove/$pkg.sh: running..."
+      preremove/"$pkg".sh
     fi
 
     mapfile dt < setup/"$pkg".lst
 
+    msg "$pkg: removing files..."
     for each in ${dt[*]}
     do
       [ -n "$each" ] && [ -f /$each ] && /bin/rm -f -- /$each
     done
 
+    msg "$pkg: removing directories..."
     for each in ${dt[*]}
     do
       [ -n "$each" ] && [ -d /$each/ ] && \
 	/bin/rmdir --ignore-fail-on-non-empty -- /$each/
     done
 
+    /bin/rm -f -- setup/"$pkg".lst
     /bin/sed -i -e '/^'"$pkg"'\s/d' -- setup/installed.db
-    /bin/rm -f -- postinstall/"$pkg".*sh* setup/"$pkg".lst*
     msg "$pkg: removed"
-  done
-}
-
-function apt-source {
-  check-packages
-  find-workspace
-  local pkg sbq
-
-  for pkg in "${pks[@]}"
-  do
-    (( sbq++ )) && echo
-    cyg-source "$pkg"
   done
 }
 
@@ -858,8 +912,8 @@ function cyg-source {
   # check the md5
   digest=$4
   case ${#digest} in
-   32) hash=md5sum    ;;
-  128) hash=sha512sum ;;
+   32) hash=/usr/bin/md5sum; sum=md5.sum;;
+  128) hash=/usr/bin/sha512sum; sum=sha512.sum;;
   esac
 
   pushd ~-	# back to user directory
@@ -873,10 +927,20 @@ function cyg-source {
   # download package source and check hash
   if ! test -e $bn || ! $hash -c <<< "$digest $bn"
   then
-    wget $bn $mirror/$dn/$bn
+    wget $mirror$dn/$sum
+    if [ ! -f $sum ]; then
+      warn "$pkg: $sum: download failed"
+      return 2
+    fi
+    wget $bn $mirror$dn/$bn
     if [ ! -f $bn ]; then
       warn "$pkg: download failed"
       return 2
+    fi
+    msg "$pkg: $sum: checking hashes..."
+    if ! $hash -cw --ignore-missing -- $sum; then
+      warn "$pkg: $sum: hash does not match, download corrupted?"
+      exit 1
     fi
     if ! $hash -c <<< "$digest $bn"; then
       warn "$pkg: hash does not match, download corrupted?"
@@ -886,7 +950,7 @@ function cyg-source {
 
   if [ ! -v nounpack ]; then
     msg "$pkg: $pkg/$bn; unpacking ..."
-    tar -x -f $bn
+    /bin/tar -x -f $bn --
 
     # can't build unless you unpack
     if [ -v build ]; then
@@ -927,6 +991,18 @@ function cyg-source {
   popd
 }
 
+function apt-source {
+  check-packages
+  find-workspace
+  local pkg sbq
+
+  for pkg in "${pks[@]}"
+  do
+    (( sbq++ )) && echo
+    cyg-source "$pkg"
+  done
+}
+
 function apt-mirror {
   if [ "$pks" ]
   then
@@ -934,33 +1010,66 @@ function apt-mirror {
     msg "$pks: mirror set."
     mirror="$pks"
   else
-    /bin/sed '0,/^last-mirror$/d;s/^\s\+//;q' /etc/setup/setup.rc
+    mirror=$(/bin/sed '0,/^last-mirror$/d;s/^\s\+//;q' /etc/setup/setup.rc)
   fi
+  mirrordir=${mirror//\//%2f}
+  mirrordir=${mirrordir//:/%3a}
+  echo $mirror
 }
 
 function apt-cache {
   if [ "$pks" ]
   then
-    vas=$(cygpath -aw "$pks")
-    /bin/sed -i '/^last-cache$/{n;s|^.*$|\t'"${vas//\\/\\\\}"'|}' /etc/setup/setup.rc
-    msg "$vas: cache set."
-    cachedir="$pks"
-    cache="$vas"
+    cachedir=$(cygpath -aU "$pks")
+    cache=$(cygpath -aml "$pks")
+    /bin/sed -i '/^last-cache$/{n;s|^.*$|\t'"${cache//\\/\\\\}"'|}' /etc/setup/setup.rc
+    msg "$cachedir: cache set."
   else
-    /bin/sed '0,/^last-cache$/d;s/^\s\+//;q' /etc/setup/setup.rc
+    cache=$(/bin/sed '0,/^last-cache$/d;s/^\s\+//;q' /etc/setup/setup.rc)
+    cachedir=$(cygpath -aU "$cache")
+    echo $cachedir
   fi
 }
 
 
 # main code #
 
+prog=${0##*/}
+base=${prog%.*}
+
+if [ ${BASH_VERSINFO:-0}${BASH_VERSINFO[1]} -lt 42 ]
+then
+  warn "bash: version $BASH_VERSINFO.${BASH_VERSINFO[1]}, version 4.2+ required"
+  exit 3
+fi
+
 if [ -p /dev/stdin ]
 then
   mapfile -t pks
 fi
 
-prog=${0##*/}
-base=${prog%.*}
+# select available download program
+for w in /usr/bin/wget /usr/bin/curl /usr/bin/lynx
+do
+  if [ -x $w ]
+  then
+    wget=$w
+    fb=${wget##*/}
+
+    if [ "$fb" != "wget" ]
+    then
+      warn "wget: not found; fallback to $fb"
+    fi
+
+    break
+  fi
+done
+
+if [ -z "$wget" ]
+then
+  warn "wget, curl, lynx: none found; cannot download"
+  exit 2
+fi
 
 # process options
 until [ $# -eq 0 ]
