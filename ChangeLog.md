@@ -1,3 +1,13 @@
+2019-07-10 Brian Inglis
+----------
+* [](https://github.com/BrianInglis/apt-cyg/commit/)
+    update ChangeLog.md
+
+2019-07-10 Brian Inglis
+----------
+* [351630f](https://github.com/BrianInglis/apt-cyg/commit/351630f)
+    apt-cyg, apt-cyg.8, README.md: support abbreviated operation and option names
+
 2019-05-30 Brian Inglis
 ----------
 * [2d91c9b](https://github.com/BrianInglis/apt-cyg/commit/2d91c9b)
