@@ -1,6 +1,6 @@
 2019-07-10 Brian Inglis
 ----------
-* [](https://github.com/BrianInglis/apt-cyg/commit/)
+* [86f06e3](https://github.com/BrianInglis/apt-cyg/commit/86f06e3)
     update ChangeLog.md
 
 2019-07-10 Brian Inglis
