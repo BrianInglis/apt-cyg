@@ -25,15 +25,16 @@
 
 usage="\
 NAME
-  apt-cyg - package manager utility
+  apt-cyg - Cygwin package manager utility
 SYNOPSIS
-  apt-cyg [-?|-h|--help|-V|--version]
-	  {list[all] [-i|--installed|-u|--upgradable|pkg...] |
-	  {show | listfiles |
-	  install [-n|--nodeps] [-p|--nopick] [-s|--noscripts] |
-	  source [-b|--build|-c|--compile|-d|--download|--download-only] |
-	  download | remove | depends | rdepends} pkg... | search[all] file... |
-	  category [cat...] | update | mirror [URL] | cache [directory]}
+  apt-cyg [-?|-h|--h[elp]|-V|-v|--v[ersion]]
+	  {l[ist[a[ll]]] [-i|--i[nstalled]|-u|--u[pgradable]|pkg...] |
+	  {s[how] | l[ist]f[iles] |
+	  i[nstall] [-n|--nod[eps]] [-p|--nop[ick]] [-s|--nos[cripts]] |
+	  so[urce] [-b|--b[uild]|-c|--c[ompile]|-d|--d[ownload[-only]] |
+	  do[wnload] | re[move] | de[pends] | rd[epends]} pkg... |
+	  se[arch[a[ll]]] file... | cat[egor[y|ies]] [cat...] |
+	  u[pdate] | m[irror] [URL] | cac[he] [directory]}
 DESCRIPTION
   apt-cyg is a package management utility that tracks installed packages
   on a Cygwin system.  Invoking apt-cyg involves specifying an operation
@@ -41,89 +42,89 @@ DESCRIPTION
   either a package name, file name, search string, URL, or directory.
   Targets can be provided as command line arguments.
 OPERATIONS
-  list[all] [-i|--installed|-u|--upgradable|pkg...]
+  l[ist[a[ll]]] [-i|--i[nstalled]|-u|--u[pgradable]|pkg...]
     Display package names that match shell patterns. If listall is used, or
     no packages are found by list, searches the master package list (in
     setup.ini). Option --installed displays all installed packages; option
     --upgradable displays all outdated packages.
-  show pkg...
+  s[how] pkg...
     Display information on given package name(s).
-  listfiles pkg...
+  l[ist]f[iles] pkg...
     List all files owned by a given package. Multiple packages can be
     specified on the command line.
-  install [-n|--nodeps] [-p|--nopick] [-s|--noscripts] pkg...
-    Install package(s) and any dependencies, unless -n|--nodeps is specified,
+  i[nstall] [-n|--nod[eps]] [-p|--nop[ick]] [-s|--nos[cripts]] pkg...
+    Install package(s) and any dependencies, unless -n|--nod[eps] is specified,
     which skips all dependency checks, and does not download or install
-    packages on which specified packages are dependent; -p|--nopick is an
-    internal option for install of a package dependency; --noscripts skips
+    packages on which specified packages are dependent; -p|--nop[ick] is an
+    internal option for install of a package dependency; -s|--nos[cripts] skips
     running any preremove or postinstall scripts immediately, and is used
     internally to defer running scripts until all requested packages and
     dependencies have been installed, or are ready to be removed.
-  source [-b|--build|-c|--compile|-d|--download|--download-only] pkg...
+  so[urce] [-b|--b[uild]|-c|--c[ompile]|-d|--d[ownload[-only]] pkg...
     Retrieve package source(s) from the server into a package directory
     created under the current directory, and unpack under the package
-    directory, unless -d|--download|--download-only is specified.
-    If -b|--build|-c|--compile is specified, and cygport specs are in the
+    directory, unless -d|--d[ownload[-only]] is specified.
+    If -b|--b[uild]|-c|--c[ompile] is specified, and cygport specs are in the
     package, install any build dependencies, plus cygport and any of its
     build dependencies, and build package using cygport; otherwise try to 
     configure, then try to make; if cygport specs are not part of the package,
     build dependencies may be missing, and need to be installed manually.
-  download pkg...
+  do[wnload] pkg...
     Retrieve package(s) from the server, but do not install/upgrade
     anything.
-  remove pkg...
+  re[move] pkg...
     Remove package(s) from the system.
-  depends pkg...
+  de[pends] pkg...
     Produce a tree of all dependencies for a package.
-  rdepends pkg...
+  rd[epends] pkg...
     Produce a tree of packages that depend on the named package.
-  search[all] file...
+  se[arch][a[ll]] file...
     Search for packages that own the specified file(s).  The path can
     be relative or absolute, and one or more files can be specified.
     If searchall is used searches cygwin.com for packages that own the
     specified file(s).
-  category [cat...]
+  cat[egor[y|ies]] [cat...]
     Display all packages that are members of a named category.  If no
     category is provided in the command line, all categories used will
     be listed.
-  update
+  u[pdate]
     Download a fresh copy of the master package list (setup.ini) from
     the mirror, and display outdated packages.
-  mirror [URL]
+  m[irror] [URL]
     Set the mirror: a full URL to a location where the database,
     packages, and signatures for this repository can be found.  If no
     URL is provided, display the current mirror.
-  cache [directory]
+  cac[he] [directory]
     Set the package cache directory.  Unix and Windows forms are
     accepted, as well as absolute or regular paths.  If no directory is
     provided, display current cache.  If a package to install is not
     found in the cache directory, it will be downloaded.
 OPTIONS
-  -b|--build|-c|--compile
+  -b|--b[uild]|-c|--c[ompile]
     With source: install any build dependencies; if cygport is part of
     the package, include cygport and any of its build dependencies, and
     build package using cygport; otherwise try to configure, then try
     to make; if cygport is not part of the package, build dependencies
     may be missing, and need to be installed manually.
-  -d|--download|--download-only
+  -d|--d[ownload[-only]]
     With source: just download and do not unpack source package.
-  -i|--installed
-    With list[all]: display all or only installed packages.
-  -n|--nodeps
+  -i|--i[nstalled]
+    With list: display only installed packages.
+  -n|--nod[eps]
     Specify this option to skip all dependency checks, and not download
     or install packages on which specified packages are dependent.
-  -p|--nopick
+  -p|--nop[ick]
     Internal option for install of a package dependency.
-  -s|--noscripts
+  -s|--nos[cripts]
     Specify this option to skip running any preremove or postinstall
     scripts.  Used internally during install to defer running
     postinstall scripts until all requested packages and dependencies
     have been installed.
-  -u|--upgradable
-    With list[all]: display all or only outdated packages.
-  -?|-h|--help
+  -u|--u[pgradable]
+    With list: display only outdated packages.
+  -?|-h|--h[elp]
     Display usage and exit.
-  -V|--version
+  -V|-v|--v[ersion]
     Display version and exit.
 DIAGNOSTICS
   apt-cyg returns zero on normal operation, non-zero on error.
@@ -1076,47 +1077,52 @@ until [ $# -eq 0 ]
 do
   case "$1" in
 
-    -b | --build | -c | --compile)
+    -b | --b | --bu | --bui | --buil | --build | \
+    -c | --c | --co | --com | --comp | --compi | --compil | --compile)
       build=1
       shift
     ;;
 
-    -d | --download | --download-only)
+    -d | --d | --do | --dow | --down | --downl | --downlo | --downloa | \
+    --download | --download-only)
       nounpack=1
       shift
     ;;
 
-    -? | -h | --help)
+    -? | -h | --h | --he | --hel | --help)
       printf "$usage"
       exit
     ;;
 
-    -i | --installed)
+    -i | --i | --in | --ins | --inst | --insta | --instal | --install | \
+    --installe | --installed)
       installed=1
       shift
     ;;
 
-    -n | --nodeps)
+    -n | --nod | --node | --nodep | --nodeps)
       nodeps=1
       shift
     ;;
 
-    -p | --nopick)
+    -p | --nop | --nopi | --nopic | --nopick)
       nopick=1
       shift
     ;;
 
-    -s | --noscripts)
+    -s | --nos | --nosc | --noscr | --noscri | --noscrip | \
+    --noscript | --noscripts)
       noscripts=1
       shift
     ;;
 
-    -u | --upgradable)
+    -u | --u | --up | --upg | --upgr | --upgra | --upgrad | --upgrada | \
+    --upgradab | --upgradabl | --upgradable)
       upgradable=1
       shift
     ;;
 
-    -V | --version)
+    -V | -v | --v | --ve | --ver | --vers | --versi | --versio | --version)
       printf "$version"
       exit
     ;;
@@ -1126,24 +1132,100 @@ do
       shift
     ;;
 
-    update)
-      command=$1
+    cac | cach | cache)
+      command=cache
       shift
     ;;
 
-    list | listall | show | search | searchall | category | listfiles | \
-    install | download | source | remove | depends | rdepends | mirror | cache)
-      if [[ "$command" ]]
-      then
-        pks+=("$1")
-      else
-        command=$1
-      fi
+    cat | cate | categ | catego | categor | category | \
+    categori | categorie | categories)
+      command=category
+      shift
+    ;;
+
+    de | dep | depe | depen | depend | depends)
+      command=depends
+      shift
+    ;;
+
+    do | dow | down | downl | downlo | downloa | download)
+      command=download
+      shift
+    ;;
+
+    i | in | ins | inst | insta | instal | install)
+      command=install
+      shift
+    ;;
+
+    l | li | lis | list)
+      command=list
+      shift
+    ;;
+
+    la | lista | listal | listall)
+      command=listall
+      shift
+    ;;
+
+    lf | listf | listfi | listfil | listfile | listfiles)
+      command=listfiles
+      shift
+    ;;
+
+    m | mi | mir | mirr | mirro | mirror)
+      command=mirror
+      shift
+    ;;
+
+    rd | rde | rdep | rdepe | rdepen | rdepend | rdepends)
+      command=rdepends
+      shift
+    ;;
+
+    re | rem | remo | remov | remove)
+      command=remove
+      shift
+    ;;
+
+    se | sea | sear | searc | search)
+      command=search
+      shift
+    ;;
+
+    sa | searcha | searchal | searchall)
+      command=searchall
+      shift
+    ;;
+
+    s | sh | sho | show)
+      command=show
+      shift
+    ;;
+
+    so | sou | sour | sourc | source)
+      command=source
+      shift
+    ;;
+
+    u | up | upd | upda | updat | update)
+      command=update
       shift
     ;;
 
     *)
-      pks+=("$1")
+      if [ "$command" ]
+      then
+        pks+=("$1")
+      else
+	if type -t apt-$1 | /bin/grep -qe function --
+	then
+	  command=$1
+	else
+	  printf "$usage"
+	  exit 1
+	fi
+      fi
       shift
     ;;
   esac
