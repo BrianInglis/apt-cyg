@@ -199,10 +199,10 @@ function find-workspace {
   # default working directory and mirror
   
   # work wherever setup worked last, if possible
-  cache=$(/bin/sed '0,/^last-cache$/d;s/^\s\+//;q' /etc/setup/setup.rc)
+  cache=$(/bin/sed '0,/^last-cache$/d;s/^\s\+//;q' $setup_rc)
   cachedir=$(cygpath "$cache")
 
-  mirror=$(/bin/sed '0,/^last-mirror$/d;s/^\s\+//;q' /etc/setup/setup.rc)
+  mirror=$(/bin/sed '0,/^last-mirror$/d;s/^\s\+//;q' $setup_rc)
   mirrordir=${mirror//\//%2f}
   mirrordir=${mirrordir//:/%3a}
 
@@ -218,10 +218,11 @@ function find-workspace {
 }
 
 function get-setup {
-  [ -x /usr/bin/gnupg ] && gpg=/usr/bin/gnupg
-  [ -x /usr/bin/gnupg2 ] && gpg=/usr/bin/gnupg2
-  [ -x /usr/bin/gpg ] && gpg=/usr/bin/gpg
-  [ -x /usr/bin/gpg2 ] && gpg=/usr/bin/gpg2
+  gpg=''
+  for g in gnupg2 gpg2 gnupg gpg
+  do
+    [ -x /usr/bin/$g ] && gpg=/usr/bin/$g && break
+  done
   if [ -z "$gpg" ]; then
     warn "/usr/bin/g[nu]pg[2]: not found, need to install gnupg2 or gnupg"
     exit 2
@@ -237,10 +238,10 @@ function get-setup {
   gpgopts="--batch --no-secmem-warning --keyring ./pubring.asc --verify --"
   hash=/usr/bin/sha512sum
   sum=sha512.sum
-  wget $mirror$arch/$sum
+# wget $mirror$arch/$sum
   if [ ! -r $sum ] || [ ! -s $sum ]; then
     warn "sha512.sum: not found, cannot check setup hashes"
-    exit 2
+#   exit 2
   fi
   wget $mirror$arch/setup.ini.sig
   if [ ! -r setup.ini.sig ] || [ ! -s setup.ini.sig ]; then
@@ -294,11 +295,13 @@ function get-setup {
     warn "gpg: setup.ini: verify rc $?, sig setup.ini.sig, key pubring.asc"
     exit $gpgrc
   fi
-  msg "sha512sum: $sum: checking hashes..."
-  if ! $hash -cw --ignore-missing -- $sum; then
-    warn "$sum: hash does not match, download corrupted?"
-    exit 1
-  fi
+# if [ -s $sum ]; then
+#   msg "sha512sum: $sum: checking hashes..."
+#   if ! $hash -cw --ignore-missing -- $sum; then
+#     warn "$sum: hash does not match, download corrupted?"
+#     exit 1
+#   fi
+# fi
   msg "setup.ini: up to date"
 }
 
@@ -308,7 +311,7 @@ function check-packages {
     return 0
   else
     warn "No packages found."
-    return 1
+    return 2
   fi
 }
 
@@ -323,7 +326,7 @@ function apt-update {
 function show-categories {
   find-workspace
   msg "Categories:"
-  /bin/sed '/^category:\s*/!d;s///;s/\s\+/\n/g' setup.ini | sort -u | pr -5T
+  /bin/sed '/^category:\s*/!d;s///;s/\s\+/\n/g' setup.ini | sort -fu | pr -5T
 }
 
 function apt-category {
@@ -413,7 +416,7 @@ function upgradable {
 	  ++pkg_upg;
 	}
       }
-      printf( "packages available %d, installed %d, checked %d, upgradable %d\n", 
+      printf("packages available %d, installed %d, checked %d, upgradable %d\n",
 		pkg_avail, pkg_inst, pkg_check, pkg_upg) > "/dev/stderr";
       for (u in upgrade) {
       # fields: tar-bz2 pick ver arch-tar-xz size sha512sum depends...
@@ -436,7 +439,7 @@ function upgradable {
 	      int( size ), substr( " KMGTP", u, 1)) > "/dev/stderr";
       }
     }
-    ' arch="$arch" /etc/setup/installed.db setup.ini
+    ' arch="$arch" $installed setup.ini
 }
 
 function apt-listall {
@@ -490,7 +493,7 @@ function apt-list {
     END {
       exit !fd;			# success if found else failure
     }
-  ' arch="$arch" query="$pc" /etc/setup/installed.db && sbq=$?
+  ' arch="$arch" query="$pc" $installed && sbq=$?
 
 # default to no packages not all packages like apt
   [ $sbq -eq 0 ] || apt-listall		# if none installed check all packages
@@ -505,9 +508,9 @@ function apt-listfiles {
   do
     let sbq++ && echo
 
-    if [ -r /etc/setup/"$pkg".lst.gz ]
+    if [ -r $etc_setup/"$pkg".lst.gz ]
     then
-      /bin/zcat -- /etc/setup/"$pkg".lst.gz
+      /bin/zcat -- $etc_setup/"$pkg".lst.gz
     else
       download "$pkg"
       read dn bn < /tmp/dwn
@@ -671,7 +674,7 @@ function download {
   fi
 
 # unsafe to lst here - required for remove
-# /bin/tar -t -f $bn -- | gzip > /etc/setup/"$pkg".lst.gz
+# /bin/tar -t -f $bn -- | gzip > $etc_setup/"$pkg".lst.gz
   cd ~-
   /bin/mv -f -- desc  "$cachedir/$mirrordir/$dn/"
   echo $dn $bn > /tmp/dwn
@@ -700,18 +703,20 @@ function apt-search {
   done
 
   pc=$(/bin/sed 's/\./\\./g;s/?/./g;s/\*/.*/g;s/\s/|/g' <<< "${keys[@]}")
-  /bin/zegrep -le "$pc" -- /etc/setup/*.lst.gz | \
-  /bin/sed 's|^/etc/setup/||;s|\.lst\.gz$||'
+  /bin/zegrep -le "$pc" -- $etc_setup/*.lst.gz | \
+  /bin/sed "s|^$etc_setup/||;s|\\.lst\\.gz$||"
 }
 
 function apt-searchall {
+  local matches=/tmp/matches.$$
+  local search='https://cygwin.com/cgi-bin2/package-grep.cgi'
   for pkg in "${pks[@]}"
   do
-    wget /tmp/matches "https://cygwin.com/cgi-bin2/package-grep.cgi?grep=$pkg&arch=$arch&text=1"
+    wget $matches "$search?text=1&arch=$arch&grep=$pkg"
     /usr/bin/awk '
     NR == 1 || mc[$1]++ || /-debuginfo-/ || /^cygwin32-/ {next}
     {print $1}
-    ' FS='-[[:digit:]]' /tmp/matches
+    ' FS='-[[:digit:]]' $matches
   done
 }
 
@@ -723,7 +728,7 @@ function apt-install {
   for pkg in "${pks[@]}"
   do
     # indent package loop code
-    if /bin/grep -qe "^$pkg\s" -- /etc/setup/installed.db
+    if /bin/grep -qe "^$pkg\s" -- $installed
     then
       msg "$pkg: package already installed, skipping"
       continue
@@ -738,7 +743,7 @@ function apt-install {
     cd "$cachedir/$mirrordir/$dn"
     /bin/tar -x -C / -f $bn --
     # safe to lst here - required for remove
-    /bin/tar -t -f $bn -- | gzip > /etc/setup/"$pkg".lst.gz
+    /bin/tar -t -f $bn -- | gzip > $etc_setup/"$pkg".lst.gz
     # update the package database
     [ -v nopick ] && pick=0 || pick=1
     # ensure standard collating sequence regardless of locale settings
@@ -751,10 +756,9 @@ function apt-install {
     END {
       if (ins != 1) print pkg, bz, pick
     }
-    ' pkg="$pkg" bz=${bn/.xz/.bz2} pick=$pick /etc/setup/installed.db \
-					> /etc/setup/installed.$$
-    /bin/mv -f /etc/setup/installed.db /etc/setup/installed.db-save
-    /bin/mv -f /etc/setup/installed.$$ /etc/setup/installed.db
+    ' pkg="$pkg" bz=${bn/.xz/.bz2} pick=$pick $installed > $installed.$$
+    /bin/mv -f $installed $installed-save
+    /bin/mv -f $installed.$$ $installed
     [ ! -v ins ] && ins=0
     (( ins++ ))
 
@@ -768,14 +772,14 @@ function apt-install {
 
     if [[ $requires ]]
     then
-      msg "$pkg: requires the following packages, installing:"
+      msg "$pkg: requires the following packages, installing..."
       msg "$requires"
 
       for package in $requires
       do
-	if /bin/grep -qe "^$package\s" -- /etc/setup/installed.db
+	if /bin/grep -qe "^$package\s" -- $installed
 	then
-	  msg "$package: package already installed, skipping"
+	  msg "$package: package already installed, skipping..."
 	  continue
 	fi
 
@@ -785,7 +789,7 @@ function apt-install {
 
     if (( wr ))
     then
-      warn "Some required packages were not installed, continuing"
+      warn "Some required packages were not installed, continuing..."
     fi
 
     msg "$pkg: installation complete"
@@ -800,40 +804,40 @@ function apt-install {
     fi
     msg "postinstall scripts: running..."
     # allow dash scripts
-    find /etc/postinstall -name '*.*sh' | \
+    find $etc_postinstall -name '*.*sh' | \
     while read script
     do
       msg "$script: running..."
       $script
       # don't rename permanent postinstall scripts
-      [[ $script != /etc/postinstall/[0-9a-z][pqrt][-_]*.*sh ]] && \
-	/bin/mv -f -- $script $script.done
+      [[ $script != $etc_postinstall/[0-9a-z][pqrt][-_]*.*sh ]] && \
+      /bin/mv -f -- $script $script.done
     done
   fi
 }
 
 function apt-remove {
   check-packages
-  cd /etc
-  /bin/cygcheck awk bash bunzip2 grep gzip mv rm sed tar unxz | \
-  /bin/sed 's|^.*[/\\]||' | \
-  /usr/bin/sort -u -o setup/essential.lst
+  cd ${SYSCONFDIR:-/etc}/
+  /bin/cygcheck awk bash bunzip2 gzip mv rm rmdir sed tar unxz | \
+  /bin/sed '/^Found:\s/d;/^\s*->\s*/d;/cygwin.*bin/!d;s/^.*\\//' | \
+  /usr/bin/sort -u -o $essential
 
   for pkg in "${pks[@]}"
   do
-    if ! /bin/grep -qe "^$pkg\s" -- setup/installed.db
+    if ! /bin/grep -qe "^$pkg\s" -- $installed
     then
       warn "$pkg: not installed; cannot remove, skipping"
       continue
     fi
 
-    if [ ! -e setup/"$pkg".lst.gz ]
+    if [ ! -e $etc_setup/$pkg.lst.gz ]
     then
       warn "$pkg: no manifest found; cannot remove, skipping"
       continue
     fi
 
-    /bin/gzip -dk -- setup/"$pkg".lst.gz
+    /bin/gzip -dk -- $etc_setup/$pkg.lst.gz
 
     /usr/bin/awk '
     NR == FNR {
@@ -843,44 +847,51 @@ function apt-remove {
     $NF in ess {
       exit 1
     }
-    ' FS='[/\\\\]' setup/{essential,$pkg}.lst
+    ' FS='[/\\\\]' $essential $etc_setup/$pkg.lst
 
     if [ $? -ne 0 ]
     then
       warn "$pkg: used by $prog; cannot remove, skipping"
-      /bin/rm -f -- setup/"$pkg".lst
+      /bin/rm -f -- $etc_setup/$pkg.lst
       continue
     fi
 
     msg "$pkg: removing..."
 
-    if [ -x preremove/"$pkg".sh ]
+    if [ -x $etc_preremove/$pkg.sh ]
     then
     # set CYGWINFORALL to -A for use as cygpath argument in scripts if elevated
       if /usr/bin/id -G | /bin/egrep -qw '114|544|405504'; then
 	export CYGWINFORALL=-A
       fi
-      msg "$pkg: /etc/preremove/$pkg.sh: running..."
-      preremove/"$pkg".sh
+      msg "$pkg: $etc_preremove/$pkg.sh: running..."
+      $etc_preremove/$pkg.sh
     fi
 
-    mapfile dt < setup/"$pkg".lst
+    mapfile dt < $etc_setup/$pkg.lst
+    d=()
+    f=()
+
+    for each in ${dt[*]}
+    do
+      if [ -n "$each" ]; then
+	if [ -f /$each ]; then
+	  f+=(/$each)
+	elif [ -d /$each/ ]; then
+	  d+=(/$each/)
+	fi
+      fi
+    done
 
     msg "$pkg: removing files..."
-    for each in ${dt[*]}
-    do
-      [ -n "$each" ] && [ -f /$each ] && /bin/rm -f -- /$each
-    done
-
+    test -z $f || \
+	  /bin/rm -f -- ${f[*]}
     msg "$pkg: removing directories..."
-    for each in ${dt[*]}
-    do
-      [ -n "$each" ] && [ -d /$each/ ] && \
-	/bin/rmdir --ignore-fail-on-non-empty -- /$each/
-    done
+    test -z $d || \
+      /bin/rmdir --ignore-fail-on-non-empty -- ${d[*]}
 
-    /bin/rm -f -- setup/"$pkg".lst
-    /bin/sed -i -e '/^'"$pkg"'\s/d' -- setup/installed.db
+    /bin/rm -f -- $etc_setup/$pkg.lst
+    /bin/sed -i -e '/^'"$pkg"'\s/d' -- $installed
     msg "$pkg: removed"
   done
 }
@@ -964,7 +975,7 @@ function cyg-source {
 	  requires=$(/bin/sed '/^[^#]*DEPEND=/!d;s//cygport /;s/['\'\"']//g' \
 			$pkg*.cygport)
 	  requires=${requires:-cygport}
-	  msg "$pkg: building requires the following packages, installing:"
+	  msg "$pkg: building requires the following packages, installing..."
 	  msg "$requires"
 	  $0 install --nopick $requires
 	  cygport $pkg*.cygport all
@@ -1007,11 +1018,11 @@ function apt-source {
 function apt-mirror {
   if [ "$pks" ]
   then
-    /bin/sed -i '/^last-mirror$/{n;s|^.*$|\t'"$pks"'|}' /etc/setup/setup.rc
+    /bin/sed -i '/^last-mirror$/{n;s|^.*$|\t'"$pks"'|}' $setup_rc
     msg "$pks: mirror set."
     mirror="$pks"
   else
-    mirror=$(/bin/sed '0,/^last-mirror$/d;s/^\s\+//;q' /etc/setup/setup.rc)
+    mirror=$(/bin/sed '0,/^last-mirror$/d;s/^\s\+//;q' $setup_rc)
   fi
   mirrordir=${mirror//\//%2f}
   mirrordir=${mirrordir//:/%3a}
@@ -1023,10 +1034,10 @@ function apt-cache {
   then
     cachedir=$(cygpath -aU "$pks")
     cache=$(cygpath -aml "$pks")
-    /bin/sed -i '/^last-cache$/{n;s|^.*$|\t'"${cache//\\/\\\\}"'|}' /etc/setup/setup.rc
+    /bin/sed -i '/^last-cache$/{n;s|^.*$|\t'"${cache//\\/\\\\}"'|}' $setup_rc
     msg "$cachedir: cache set."
   else
-    cache=$(/bin/sed '0,/^last-cache$/d;s/^\s\+//;q' /etc/setup/setup.rc)
+    cache=$(/bin/sed '0,/^last-cache$/d;s/^\s\+//;q' $setup_rc)
     cachedir=$(cygpath -aU "$cache")
     echo $cachedir
   fi
@@ -1072,7 +1083,7 @@ then
   exit 2
 fi
 
-# process options
+# process args
 until [ $# -eq 0 ]
 do
   case "$1" in
@@ -1084,12 +1095,13 @@ do
     ;;
 
     -d | --d | --do | --dow | --down | --downl | --downlo | --downloa | \
-    --download | --download-only)
+    --download | --download-o | --download-on | --download-onl | \
+    --download-only)
       nounpack=1
       shift
     ;;
 
-    -? | -h | --h | --he | --hel | --help)
+    -\? | -h | --h | --he | --hel | --help)
       printf "$usage"
       exit
     ;;
@@ -1163,12 +1175,13 @@ do
       shift
     ;;
 
-    la | lista | listal | listall)
+    la | lal | lall | lista | listal | listall)
       command=listall
       shift
     ;;
 
-    lf | listf | listfi | listfil | listfile | listfiles)
+    lf | lfi | lfil | lfile | lfiles | \
+    listf | listfi | listfil | listfile | listfiles)
       command=listfiles
       shift
     ;;
@@ -1193,7 +1206,7 @@ do
       shift
     ;;
 
-    sa | searcha | searchal | searchall)
+    sa | sal | sall | searcha | searchal | searchall)
       command=searchall
       shift
     ;;
@@ -1208,7 +1221,7 @@ do
       shift
     ;;
 
-    u | up | upd | upda | updat | update)
+    upd | upda | updat | update)
       command=update
       shift
     ;;
@@ -1233,6 +1246,12 @@ done
 
 set -a
 readonly arch=${HOSTTYPE/i[3-7]/x}
+readonly etc_preremove=${SYSCONFDIR:-/etc}/preremove
+readonly etc_postinstall=${SYSCONFDIR:-/etc}/postinstall
+readonly etc_setup=${SYSCONFDIR:-/etc}/setup
+readonly setup_rc=$etc_setup/setup.rc
+readonly installed=$etc_setup/installed.db
+readonly essential=$etc_setup/essential.lst
 
 if type -t apt-$command | /bin/grep -qe function --
 then
