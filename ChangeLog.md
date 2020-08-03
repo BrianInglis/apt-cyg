@@ -1,3 +1,27 @@
+2020-08-03 Brian Inglis
+----------
+* [14d389d](https://github.com/BrianInglis/apt-cyg/commit/14d389d)
+    apt-cyg: add setup.ini zstd support:
+    move downloads and decompressions into loop,
+    check decompressor availability before download;
+    re-enable sha512sum downloads, checks, and warnings
+
+2020-07-26 Brian Inglis
+----------
+* [ba31324](https://github.com/BrianInglis/apt-cyg/commit/ba31324)
+    apt-cyg: add long option flag name abbreviations;
+    clean up install messages;
+    return 2 when anything missing;
+    make check and hashcheck for sha512.sum conditional on existence;
+    use readonly variables for setup directories and file names;
+    loop thru checks for gpg/2 names;
+    sort categories case folded and unique
+
+2019-07-10 Brian Inglis
+----------
+* [cd5b72b](https://github.com/BrianInglis/apt-cyg/commit/cd5b72b)
+    update ChangeLog.md
+
 2019-07-10 Brian Inglis
 ----------
 * [86f06e3](https://github.com/BrianInglis/apt-cyg/commit/86f06e3)
