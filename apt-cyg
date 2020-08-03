@@ -238,7 +238,7 @@ function get-setup {
   gpgopts="--batch --no-secmem-warning --keyring ./pubring.asc --verify --"
   hash=/usr/bin/sha512sum
   sum=sha512.sum
-# wget $mirror$arch/$sum
+  wget $mirror$arch/$sum
   if [ ! -r $sum ] || [ ! -s $sum ]; then
     warn "sha512.sum: not found, cannot check setup hashes"
 #   exit 2
@@ -248,37 +248,28 @@ function get-setup {
     warn "setup.ini.sig: not found, cannot verify setup.ini signature"
     exit 2
   fi
-  if [ ! -e setup ] && [ -x /usr/bin/unxz ]; then
-    wget $mirror$arch/setup.xz.sig
-    wget $mirror$arch/setup.xz
-    if [ -r setup.xz.sig ] && [ -s setup.xz.sig ] && \
-	[ -r setup.xz ] && [ -s setup.xz ]; then
-      msg "gpg: setup.xz: verifying sig setup.xz.sig, key pubring.asc..."
-      if ! $gpg $gpgopts setup.xz.sig setup.xz; then
-	warn "gpg: setup.xz: verify rc $?, sig setup.xz.sig, key pubring.asc"
-      else
-	if ! /usr/bin/unxz -dfk -- setup.xz; then
-	  warn "unxz: setup.xz: decompress failed, rc $?"
+  for decomp in unxz unzstd bunzip2; do
+    case $decomp in
+      unxz)	dsuf=xz;;
+      unzstd)	dsuf=zst;;
+      bunzip2)	dsuf=bz2;;
+    esac
+    if [ ! -e setup ] && [ -x /usr/bin/$decomp ]; then
+      wget $mirror$arch/setup.$dsuf.sig
+      wget $mirror$arch/setup.$dsuf
+      if [ -r setup.$dsuf.sig ] && [ -s setup.$dsuf.sig ] && \
+	  [ -r setup.$dsuf ] && [ -s setup.$dsuf ]; then
+	msg "gpg: setup.$dsuf: verifying sig setup.$dsuf.sig, key pubring.asc..."
+	if ! $gpg $gpgopts setup.$dsuf.sig setup.$dsuf; then
+	  warn "gpg: setup.$dsuf: verify rc $?, sig setup.$dsuf.sig, key pubring.asc"
+	else
+	  if ! /usr/bin/$decomp -dfk -- setup.$dsuf; then
+	    warn "$decomp: setup.$dsuf: decompress failed, rc $?"
+	  fi
 	fi
       fi
     fi
-  fi
-  if [ ! -e setup ] && [ -x /usr/bin/bunzip2 ]
-  then
-    wget $mirror$arch/setup.bz2.sig
-    wget $mirror$arch/setup.bz2
-    if [ -r setup.bz2.sig ] && [ -s setup.bz2.sig ] && \
-	[ -r setup.bz2 ] && [ -s setup.bz2 ]; then
-      msg "gpg: setup.bz2: verifying sig setup.bz2.sig, key pubring.asc..."
-      if ! $gpg $gpgopts setup.bz2.sig setup.bz2; then
-	warn "gpg: setup.bz2: verify rc $?, sig setup.bz2.sig, key pubring.asc"
-      else
-	if ! /usr/bin/bunzip2 -dfk -- setup.bz2; then
-	  warn "bunzip2: setup.bz2: decompress failed, rc $?"
-	fi
-      fi
-    fi
-  fi
+  done
   if [ -e setup ]; then
     /bin/mv -f setup setup.ini
   else
@@ -295,13 +286,13 @@ function get-setup {
     warn "gpg: setup.ini: verify rc $?, sig setup.ini.sig, key pubring.asc"
     exit $gpgrc
   fi
-# if [ -s $sum ]; then
-#   msg "sha512sum: $sum: checking hashes..."
-#   if ! $hash -cw --ignore-missing -- $sum; then
-#     warn "$sum: hash does not match, download corrupted?"
+  if [ -s $sum ]; then
+    msg "sha512sum: $sum: checking hashes..."
+    if ! $hash -cw --ignore-missing -- $sum; then
+      warn "$sum: hash does not match, download corrupted?"
 #     exit 1
-#   fi
-# fi
+    fi
+  fi
   msg "setup.ini: up to date"
 }
 
