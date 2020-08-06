@@ -1,51 +1,4 @@
-2020-08-03 Brian Inglis
-----------
-* [14d389d](https://github.com/BrianInglis/apt-cyg/commit/14d389d)
-    apt-cyg: add setup.ini zstd support:
-    move downloads and decompressions into loop,
-    check decompressor availability before download;
-    re-enable sha512sum downloads, checks, and warnings
-
-2020-07-26 Brian Inglis
-----------
-* [ba31324](https://github.com/BrianInglis/apt-cyg/commit/ba31324)
-    apt-cyg: add long option flag name abbreviations;
-    clean up install messages;
-    return 2 when anything missing;
-    make check and hashcheck for sha512.sum conditional on existence;
-    use readonly variables for setup directories and file names;
-    loop thru checks for gpg/2 names;
-    sort categories case folded and unique
-
-2019-07-10 Brian Inglis
-----------
-* [cd5b72b](https://github.com/BrianInglis/apt-cyg/commit/cd5b72b)
-    update ChangeLog.md
-
-2019-07-10 Brian Inglis
-----------
-* [86f06e3](https://github.com/BrianInglis/apt-cyg/commit/86f06e3)
-    update ChangeLog.md
-
-2019-07-10 Brian Inglis
-----------
-* [351630f](https://github.com/BrianInglis/apt-cyg/commit/351630f)
-    apt-cyg, apt-cyg.8, README.md: support abbreviated operation and option names
-
-2019-05-30 Brian Inglis
-----------
-* [2d91c9b](https://github.com/BrianInglis/apt-cyg/commit/2d91c9b)
-    apt-cyg: Check for executable availability once at start of mainline.
-    Support different gpg/gnupg/2 executable names and prefer gpg2/gnupg2.
-    Require gawk features for consistent operation.
-    Assume standard utility paths and use -- to separate options from files.
-    Add more consistent and extensive gpg, checksum hash, and exit code validations.
-    Use warn and msg functions and format message content consistently for output.
-    Add more messages about operations and progress, and warning messages about results.
-    Move some code blocks and functions around to improve cohesion and structure.
-
-29 Jun 2017 Brian Inglis
-----------
+2020-08-06 Brian Inglis
 * [c2ecab9](https://github.com/BrianInglis/apt-cyg/commit/c2ecab9)
     apt-cyg: add msg function to use instead of echo, prefix messages with
     script name - give package or file name as subject - followed by message
@@ -55,7 +8,6 @@
     paths from manifests,
 
 29 Jun 2017 Brian Inglis
-----------
 * [5124156](https://github.com/BrianInglis/apt-cyg/tree/5124156)
     apt-cyg: set explicit external command bin paths, double quote warning
     messages, cygpath cache dir internally, display arch for upgrades, return
@@ -64,13 +16,7 @@
     elevated for postinstall and preremove scripts, change list of essential
     programs for apt-cyg, space out option, argument case alternatives
 
-13 Apr 2017 Brian Inglis
-----------
-* [595de9c](https://github.com/BrianInglis/apt-cyg/commit/595de9c)
-    update ChangeLog.md
-
 2017-04-13 Brian Inglis
-----------
 * [2afd9f7](http://github.com/BrianInglis/apt-cyg/commit/2afd9f7)
     apt-cyg: add function upgradable as an awk script wrapper to compare
     <cache>/<mirror>/setup.ini to /etc/setup/installed.db and display the
@@ -91,7 +37,6 @@
     command issued.
 
 2017-04-13 Brian Inglis
-----------
 * [5779d50](http://github.com/BrianInglis/apt-cyg/commit/5779d50)
   ChangeLog.md, README.md: add markup,
   apt-cyg: speed up by using sed -i instead of awk inplace, sed instead of awk,
@@ -116,28 +61,22 @@
   be removed
 
 2017-04-02 Brian Inglis
-----------
 * [9ec42b5](http://github.com/BrianInglis/apt-cyg/commit/9ec42b5)
   add apt-cyg man page
 
 2017-04-01 Brian Inglis
-----------
 * [9fe833f](http://github.com/BrianInglis/apt-cyg/commit/9fe833f)
   rename ChangeLog and add history
 
 2017-04-01 Brian Inglis
-----------
 * [db90916](http://github.com/BrianInglis/apt-cyg/commit/db90916)
   rename README and update to match man page
 
 2017-04-01 Brian Inglis
-----------
 * [69d8c26](http://github.com/BrianInglis/apt-cyg/commit/69d8c26)
   add apt-cyg man page
 
 2016-10-26 Brian Inglis
-----------
-
 * [1693e11](http://github.com/BrianInglis/apt-cyg/commit/1693e11)
   add wget -nv non-verbose option
 * [5cd1d58](http://github.com/BrianInglis/apt-cyg/commit/5cd1d58)
@@ -153,15 +92,11 @@
   permanent first and last to run postinstall scripts
 
 2016-08-15 Stephen Jungels
-----------
-
 * [2cac824](http://github.com/BrianInglis/apt-cyg/commit/2cac824)
   Update readme.md
   Removed bountysource link
 
 2016-03-07 Stephen Jungels
-----------
-
 * [3a40db9](http://github.com/BrianInglis/apt-cyg/commit/3a40db9)
   Delete go-cyg.go
 * [5ef3cf4](http://github.com/BrianInglis/apt-cyg/commit/5ef3cf4)
@@ -173,74 +108,52 @@
   Create a license file (MIT)
 
 2016-03-07 Loïc Corbasson
-----------
-
 * [807a91f](http://github.com/BrianInglis/apt-cyg/commit/807a91f)
   Create a license file (MIT)
   MIT license like in the source files
 
 2016-03-01 Stephen Jungels
-----------
-
 * [0638b38](http://github.com/BrianInglis/apt-cyg/commit/0638b38)
   Removed old status update
 
 2016-01-24 Stephen Jungels
-----------
-
 * [cf0e883](http://github.com/BrianInglis/apt-cyg/commit/cf0e883)
   Update readme.md
   Status update
 
 2016-01-22 Steven Penny
-----------
-
 * [b6076c2](http://github.com/BrianInglis/apt-cyg/commit/b6076c2)
   you guys love wasting my time or: fix #72
 
 2016-01-03 Steven Penny
-----------
-
 * [b3668b1](http://github.com/BrianInglis/apt-cyg/commit/b3668b1)
   apt-cyg version 1
 
 2016-01-02 Steven Penny
-----------
-
 * [2f59c98](http://github.com/BrianInglis/apt-cyg/commit/2f59c98)
   usage
 
 2015-12-07 Steven Penny
-----------
-
 * [fd985e7](http://github.com/BrianInglis/apt-cyg/commit/fd985e7)
   Fix #69
 
 2015-11-28 Steven Penny
-----------
-
 * [0e1df15](http://github.com/BrianInglis/apt-cyg/commit/0e1df15)
   modified:   readme.md
 * [4a792a1](http://github.com/BrianInglis/apt-cyg/commit/4a792a1)
   modified:   readme.md
 
 2015-11-25 Steven Penny
-----------
-
 * [734e6eb](http://github.com/BrianInglis/apt-cyg/commit/734e6eb)
   renamed:    CHANGELOG.md -> changelog.md
   renamed:    README.md -> readme.md
 
 2015-09-06 Steven Penny
-----------
-
 * [395caa5](http://github.com/BrianInglis/apt-cyg/commit/395caa5)
   --nodeps
   Specify this option to skip all dependency checks
 
 2015-07-29 Steven Penny
-----------
-
 * [a517b08](http://github.com/BrianInglis/apt-cyg/commit/a517b08)
   Fix #58 fix #59
   If a user sets cache as "/", this gets converted to "C:\cygwin64". Instead of
@@ -250,20 +163,14 @@
   http://cygwin.com/ml/cygwin/2015-07/msg00432.html
 
 2015-07-07 Steven Penny
-----------
-
 * [4e05a45](http://github.com/BrianInglis/apt-cyg/commit/4e05a45)
   searchall: exclude cygwin32 packages
 
 2015-05-30 Steven Penny
-----------
-
 * [b1d9475](http://github.com/BrianInglis/apt-cyg/commit/b1d9475)
   Fix #50
 
 2015-04-18 Steven Penny
-----------
-
 * [f2fa0ab](http://github.com/BrianInglis/apt-cyg/commit/f2fa0ab)
   mirror and cache operations
   mirror and cache are now operations rather than options. This is in line with
@@ -277,8 +184,6 @@
 ```
 
 2015-04-17 Steven Penny
-----------
-
 * [7a2044e](http://github.com/BrianInglis/apt-cyg/commit/7a2044e)
   Kill info function
 * [3ca57e8](http://github.com/BrianInglis/apt-cyg/commit/3ca57e8)
@@ -290,8 +195,6 @@
   - Kill --help option
 
 2015-04-16 Steven Penny
-----------
-
 * [27570ba](http://github.com/BrianInglis/apt-cyg/commit/27570ba)
   new file: go/README.md
   modified: go/go-cyg.go
@@ -301,8 +204,6 @@
   Fix #43
 
 2015-04-12 Steven Penny
-----------
-
 * [210e5a3](http://github.com/BrianInglis/apt-cyg/commit/210e5a3)
   renamed: go-cyg.go -> go/go-cyg.go
 * [83b2425](http://github.com/BrianInglis/apt-cyg/commit/83b2425)
@@ -316,14 +217,10 @@
   format. Since I am just starting with Go I may not have the skill, we shall see.
 
 2015-01-02 Steven Penny
-----------
-
 * [aea773d](http://github.com/BrianInglis/apt-cyg/commit/aea773d)
   Fix #29 Fix #30
 
 2014-12-29 Steven Penny
-----------
-
 * [cc9b2bd](http://github.com/BrianInglis/apt-cyg/commit/cc9b2bd)
   functions: download set-cache set-mirror apt-install apt-remove begin charlie
   Here are the changes, by line number:
@@ -361,8 +258,6 @@
     to stdout just before the script finishes. this should help with debugging
 
 2014-12-27 Steven Penny
-----------
-
 * [c325aee](http://github.com/BrianInglis/apt-cyg/commit/c325aee)
   modified: apt-cyg
 * [db7bada](http://github.com/BrianInglis/apt-cyg/commit/db7bada)
@@ -381,20 +276,14 @@
   - utilize awk inplace where appropriate
 
 2014-12-26 Steven Penny
-----------
-
 * [dcd9b3d](http://github.com/BrianInglis/apt-cyg/commit/dcd9b3d)
   Fix #12
 
 2014-12-25 Steven Penny
-----------
-
 * [b1162d9](http://github.com/BrianInglis/apt-cyg/commit/b1162d9)
   modified: apt-cyg
 
 2014-12-20 Steven Penny
-----------
-
 * [44ed47e](http://github.com/BrianInglis/apt-cyg/commit/44ed47e)
   modified: README.md
 * [61ae91a](http://github.com/BrianInglis/apt-cyg/commit/61ae91a)
@@ -407,15 +296,13 @@
   pinch to download files
   http://unix.stackexchange.com/a/83987
   lynx has these features
-  - pure command line, unlike setup-x86_64
+  - pure command line, unlike setup-x86\_64
   - works with "https://" URLs, unlike /dev/tcp
   - comes with Base Cygwin, unlike wget/curl
   If wget is not installed, lynx will be used as a fallback with a warning
   printed.
 
 2014-12-16 Steven Penny
-----------
-
 * [aa4a288](http://github.com/BrianInglis/apt-cyg/commit/aa4a288)
   modified: README.md
 * [91c7746](http://github.com/BrianInglis/apt-cyg/commit/91c7746)
@@ -425,20 +312,14 @@
   e9bea37b959b9cb9f933d0379f2e8db3cc73b589
 
 2014-11-17 Steven Penny
-----------
-
 * [3f2b9d9](http://github.com/BrianInglis/apt-cyg/commit/3f2b9d9)
   modified:   README.md
 
 2014-11-14 Steven Penny
-----------
-
 * [b6f9d53](http://github.com/BrianInglis/apt-cyg/commit/b6f9d53)
   minor edit
 
 2014-11-12 Steven Penny
-----------
-
 * [23c2db7](http://github.com/BrianInglis/apt-cyg/commit/23c2db7)
   searchall: fix split lines
   http://cygwin.com/ml/cygwin/2014-11/msg00287.html
@@ -462,14 +343,10 @@
   Solving the path problem in seconds.
 
 2014-11-01 Steven Penny
-----------
-
 * [2138f54](http://github.com/BrianInglis/apt-cyg/commit/2138f54)
     check-packages
 
 2014-10-31 Steven Penny
-----------
-
 * [8eb3151](http://github.com/BrianInglis/apt-cyg/commit/8eb3151)
   Support standard input
   Can now pipe package names to apt-cyg, example
@@ -484,22 +361,16 @@
   http://askubuntu.com/a/473511
 
 2014-10-26 Steven Penny
-----------
-
 * [7bee922](http://github.com/BrianInglis/apt-cyg/commit/7bee922)
   Never print "No packages found" with apt-cyg list
 * [c7f61ef](http://github.com/BrianInglis/apt-cyg/commit/c7f61ef)
   Update README.md
 
 2014-08-04 Steven Penny
-----------
-
 * [7bec32e](http://github.com/BrianInglis/apt-cyg/commit/7bec32e)
   Consistent function declarations
 
 2014-07-26 Steven Penny
-----------
-
 * [e83c360](http://github.com/BrianInglis/apt-cyg/commit/e83c360)
   Merge pull request #20 from kuc/improve-readme
   Improve README.md
@@ -507,22 +378,16 @@
   Improve README
 
 2014-06-28 Steven Penny
-----------
-
 * [73702ab](http://github.com/BrianInglis/apt-cyg/commit/73702ab)
   Fix #18
 
 2014-06-18 Steven Penny
-----------
-
 * [8c91a53](http://github.com/BrianInglis/apt-cyg/commit/8c91a53)
   Write to and read from setup.rc
   "last-cache" and "last-mirror" will now be written to and read from setup.rc,
   instead of the non-standard /etc/setup/last-{cache,mirror}.
 
 2014-06-16 Steven Penny
-----------
-
 * [12f3947](http://github.com/BrianInglis/apt-cyg/commit/12f3947)
   Minor fix
 * [b1ad202](http://github.com/BrianInglis/apt-cyg/commit/b1ad202)
@@ -535,8 +400,6 @@
   Packages will now be downloaded as directed by "setup.ini"
 
 2014-06-15 Steven Penny
-----------
-
 * [72fe905](http://github.com/BrianInglis/apt-cyg/commit/72fe905)
   download command
   This is similar to the "apt-get --download-only install" command.
@@ -552,8 +415,6 @@
   currently only yields the "gcc-debuginfo" package.
 
 2014-06-14 Steven Penny
-----------
-
 * [59c5236](http://github.com/BrianInglis/apt-cyg/commit/59c5236)
   Simplify proxy check
 * [67658a5](http://github.com/BrianInglis/apt-cyg/commit/67658a5)
@@ -572,14 +433,10 @@
   8. save remaining proxies to file
 
 2014-06-12 Steven Penny
-----------
-
 * [062883c](http://github.com/BrianInglis/apt-cyg/commit/062883c)
   --version: fix license
 
 2014-06-11 Steven Penny
-----------
-
 * [143e7a8](http://github.com/BrianInglis/apt-cyg/commit/143e7a8)
   Change proxy list
 * [71a3ce0](http://github.com/BrianInglis/apt-cyg/commit/71a3ce0)
@@ -588,8 +445,6 @@
   Update README
 
 2014-06-09 Steven Penny
-----------
-
 * [b11ab2d](http://github.com/BrianInglis/apt-cyg/commit/b11ab2d)
   searchall: filter out "Index of"
   "Index of" pages do not contain list of files, only list of packages.
@@ -603,14 +458,10 @@
   replace with a scraper.
 
 2014-06-05 Steven Penny
-----------
-
 * [81c64c9](http://github.com/BrianInglis/apt-cyg/commit/81c64c9)
   Golf the ARCH code
 
 2014-06-04 Steven Penny
-----------
-
 * [e5abc1c](http://github.com/BrianInglis/apt-cyg/commit/e5abc1c)
   Use proper array for packages
   I think package names are not allowed to contain spaces anyway, but if they are
@@ -619,16 +470,12 @@
   are still lingering but that is an easy fix.
 
 2014-06-03 Steven Penny
-----------
-
 * [e989ec9](http://github.com/BrianInglis/apt-cyg/commit/e989ec9)
   Minor edit
 * [6fc1dac](http://github.com/BrianInglis/apt-cyg/commit/6fc1dac)
   Support /dev/clipboard
 
 2014-06-01 Steven Penny
-----------
-
 * [a6d4d8f](http://github.com/BrianInglis/apt-cyg/commit/a6d4d8f)
   Minor edit "usage"
 * [1272ac4](http://github.com/BrianInglis/apt-cyg/commit/1272ac4)
@@ -639,24 +486,18 @@
   or similar.
 
 2014-05-31 Steven Penny
-----------
-
 * [200ce90](http://github.com/BrianInglis/apt-cyg/commit/200ce90)
   Search "devel" packages unless looking for ".exe"
   apt-cyg searchall will now only exclude "devel" packages if you are searching
   for ".exe" or similar.
 
 2014-05-28 Steven Penny
-----------
-
 * [c8fb260](http://github.com/BrianInglis/apt-cyg/commit/c8fb260)
   Improve "depends" function
   - function will now print the packages at proper depths
   - added newline between each result if called with multiple packages
 
 2014-05-27 Steven Penny
-----------
-
 * [3900245](http://github.com/BrianInglis/apt-cyg/commit/3900245)
   listfiles download if necessary
   listfiles was only working on packages that were already installed. You should
@@ -671,16 +512,12 @@
   - simplified a grep statement
 
 2014-05-26 Steven Penny
-----------
-
 * [13a9f58](http://github.com/BrianInglis/apt-cyg/commit/13a9f58)
   Download function
   Package download functionality has been moved into its own private function, to
   support future updates.
 
 2014-05-25 Steven Penny
-----------
-
 * [6ec55ff](http://github.com/BrianInglis/apt-cyg/commit/6ec55ff)
   msys2 create wrapper scripts
   The MSYS2 programs will not play nice with Cygwin paths. This change will create
@@ -706,8 +543,6 @@
   The license is already in the header of the file.
 
 2014-05-24 Steven Penny
-----------
-
 * [fbf531e](http://github.com/BrianInglis/apt-cyg/commit/fbf531e)
   Remove case statement
   by using functions instead of case statement
@@ -724,8 +559,6 @@
   Revise some awk statements
 
 2014-05-21 Steven Penny
-----------
-
 * [73512e4](http://github.com/BrianInglis/apt-cyg/commit/73512e4)
   Restore noscripts option
   This is needed as per @kou1okada comment on 44e89c6
@@ -733,8 +566,6 @@
   Improve "depends" awk statement, part deux
 
 2014-05-20 Steven Penny
-----------
-
 * [d124c46](http://github.com/BrianInglis/apt-cyg/commit/d124c46)
   Improve "depends" awk statement
   We can save a set of braces by using "continue". Also removed a spurious
@@ -744,8 +575,6 @@
   This is similar to the "apt-cache depends" command.
 
 2014-05-19 Steven Penny
-----------
-
 * [4818a59](http://github.com/BrianInglis/apt-cyg/commit/4818a59)
   Normalize mirror directory
   User input was not being checked in any way. "mirror" must not have a trailing
@@ -753,16 +582,12 @@
   This is to match up with "setup-x86_64.exe" installer.
 
 2014-05-15 Steven Penny
-----------
-
 * [b09f55c](http://github.com/BrianInglis/apt-cyg/commit/b09f55c)
   Improve remove logic
   Thanks @kou1okada
   http://github.com/BrianInglis/apt-cyg/commit/1b3c49d#commitcomment-6329645
 
 2014-05-14 Steven Penny
-----------
-
 * [a9f9fea](http://github.com/BrianInglis/apt-cyg/commit/a9f9fea)
   Minor edit
   This will allow some relief from that long line, especially if more commands are
@@ -795,8 +620,6 @@
   - moved the function inline as it was only being called once
 
 2014-05-13 Steven Penny
-----------
-
 * [c585c8e](http://github.com/BrianInglis/apt-cyg/commit/c585c8e)
   Allow remove wget
   wget is not included with base Cygwin, so I see no reason why it cannot be
@@ -806,14 +629,10 @@
   - replaced a statement piping to Bash with more appropriate xargs statement
 
 2014-05-11 Steven Penny
-----------
-
 * [2e6305c](http://github.com/BrianInglis/apt-cyg/commit/2e6305c)
   Add more filters for "searchall"
 
 2014-05-05 Steven Penny
-----------
-
 * [a2ca937](http://github.com/BrianInglis/apt-cyg/commit/a2ca937)
   Update checkpackages function
   This function doesnt really need to exit, because package loops with no
@@ -825,8 +644,6 @@
   This is similar to the "dpkg --listfiles" command.
 
 2014-05-04 Steven Penny
-----------
-
 * [97ae776](http://github.com/BrianInglis/apt-cyg/commit/97ae776)
   Stop regexing "apt-cyg show"
   Packages supplied to "apt-cyg show" must now match exactly. This is in line
@@ -852,8 +669,6 @@
   package. New awk statement filters out first line.
 
 2014-04-18 Steven Penny
-----------
-
 * [3d0f4a0](http://github.com/BrianInglis/apt-cyg/commit/3d0f4a0)
   Fix install directory
   packages were installing to "$cache/$mirrordir" which I believe is a relic of
@@ -864,8 +679,6 @@
   This is similar to the "apt-cache rdepends" command.
 
 2014-03-16 Steven Penny
-----------
-
 * [223654f](http://github.com/BrianInglis/apt-cyg/commit/223654f)
   searchall command
   This is similar to the "apt-file search" command, and almost identical to the
@@ -875,8 +688,6 @@
   be slow at times.
 
 2014-03-14 Steven Penny
-----------
-
 * [bbc30a0](http://github.com/BrianInglis/apt-cyg/commit/bbc30a0)
   Update README.md
 * [841924f](http://github.com/BrianInglis/apt-cyg/commit/841924f)
@@ -895,8 +706,6 @@
   The plan is to merge "apt-cyg show" and "apt-cyg find" into "apt-cyg list".
 
 2014-03-09 Steven Penny
-----------
-
 * [ca292c5](http://github.com/BrianInglis/apt-cyg/commit/ca292c5)
   Minor cleanup
   - remove quote where possible
@@ -904,8 +713,6 @@
   - use single quote over double quote where possible
 
 2014-03-08 Steven Penny
-----------
-
 * [663a6d5](http://github.com/BrianInglis/apt-cyg/commit/663a6d5)
   Code clean up part 4
   - use "[" instead of "test"
@@ -921,8 +728,6 @@
   Use more concise methods for both.
 
 2014-03-07 Steven Penny
-----------
-
 * [041bc88](http://github.com/BrianInglis/apt-cyg/commit/041bc88)
   Code clean up part 3
   - avoid double quotes where possible
@@ -931,8 +736,6 @@
   - "awk" statement refactoring
 
 2014-03-06 Steven Penny
-----------
-
 * [54d23fc](http://github.com/BrianInglis/apt-cyg/commit/54d23fc)
   Code clean up part 2
   - avoid using escaped double quotes where possible
@@ -951,14 +754,10 @@
   - replace 'echo ""' with 'echo'
 
 2014-03-05 Steven Penny
-----------
-
 * [01244a6](http://github.com/BrianInglis/apt-cyg/commit/01244a6)
   change mode apt-cyg
 
 2014-02-28 Steven Penny
-----------
-
 * [41e1d91](http://github.com/BrianInglis/apt-cyg/commit/41e1d91)
   bootstrap wget
   Currently apt-cyg has a circular dependency on wget. This can be resolved the
@@ -983,8 +782,6 @@
   work.
 
 2014-02-19 Stephen Lang
-----------
-
 * [c093abf](http://github.com/BrianInglis/apt-cyg/commit/c093abf)
   Fix svn merge conflicts
 * [58b3481](http://github.com/BrianInglis/apt-cyg/commit/58b3481)
@@ -1005,16 +802,12 @@
   x86 or x86_64
 
 2014-02-19 Stephen Lang
-----------
-
 * [60a31c5](http://github.com/BrianInglis/apt-cyg/commit/60a31c5)
   Change default mirror to mirrors.kernel.org
 * [c42c442](http://github.com/BrianInglis/apt-cyg/commit/c42c442)
   Added README
 
 2013-08-15 Ryan Duryea
-----------
-
 * [4b71f04](http://github.com/BrianInglis/apt-cyg/commit/4b71f04)
   fetch setup.ini using $arch in mirror path as well
   boothj5 pointed out that the script also needs the $arch
@@ -1022,8 +815,6 @@
   fetching setup.bz2
 
 2013-08-09 Ryan Duryea
-----------
-
 * [0292520](http://github.com/BrianInglis/apt-cyg/commit/0292520)
   Handle the x86/x86_64 split when downloading setup.ini
   Cygwin recently introduced an x86_64 version and so all the mirrors
@@ -1034,14 +825,10 @@
   x86 or x86_64
 
 2014-03-16 Steven Penny
-----------
-
 * [843a530](http://github.com/BrianInglis/apt-cyg/commit/843a530)
   Merge commit 'origin~21'
 
 2014-02-19 Stephen Lang
-----------
-
 * [37d6173](http://github.com/BrianInglis/apt-cyg/commit/37d6173)
   Update README.md
 * [7c1cecb](http://github.com/BrianInglis/apt-cyg/commit/7c1cecb)
@@ -1050,8 +837,6 @@
   Initial commit
 
 2014-02-17 Stephen Lang
-----------
-
 * [45de191](http://github.com/BrianInglis/apt-cyg/commit/45de191)
   Merge branch 0.58
 * [0f361a1](http://github.com/BrianInglis/apt-cyg/commit/0f361a1)
@@ -1060,14 +845,10 @@
   Creating version 0.58 branch
 
 2013-10-23 Leszek Cimala
-----------
-
 * [46fb5d3](http://github.com/BrianInglis/apt-cyg/commit/46fb5d3)
   Update README.md
 
 2013-10-23 Ernie Rasta
-----------
-
 * [6c2cc7c](http://github.com/BrianInglis/apt-cyg/commit/6c2cc7c)
   Readme update.
 * [c437fa0](http://github.com/BrianInglis/apt-cyg/commit/c437fa0)
@@ -1076,8 +857,6 @@
   Add xz archive support.
 
 2013-07-28 Stephen Jungels
-----------
-
 * [fc54d5c](http://github.com/BrianInglis/apt-cyg/commit/fc54d5c)
   Update README.md
 * [8d8dd65](http://github.com/BrianInglis/apt-cyg/commit/8d8dd65)
@@ -1088,28 +867,20 @@
   Initial commit
 
 2010-04-27 Stephen Jungels
-----------
-
 * [ee3f7b8](http://github.com/BrianInglis/apt-cyg/commit/ee3f7b8)
   added edge case for obsolete packages
 * [25a51eb](http://github.com/BrianInglis/apt-cyg/commit/25a51eb)
   1. tightened regex install expression; 2. used wget -N where appropriate
 
 2009-08-10 Stephen Jungels
-----------
-
 * [e8891b5](http://github.com/BrianInglis/apt-cyg/commit/e8891b5)
   Merged patch that adds --noupdate flag
 
 2009-06-14 Stephen Jungels
-----------
-
 * [cbff7c9](http://github.com/BrianInglis/apt-cyg/commit/cbff7c9)
   Accepted patch that prevents extra downloads of setup.bz2
 
 2009-02-27 Stephen Jungels
-----------
-
 * [e81c40c](http://github.com/BrianInglis/apt-cyg/commit/e81c40c)
   Removed cruft
 * [c3ae41f](http://github.com/BrianInglis/apt-cyg/commit/c3ae41f)
