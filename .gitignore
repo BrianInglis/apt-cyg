@@ -1,0 +1,8 @@
+COMMIT_MSG
+orig/
+*.cc
+*.diff
+*.log
+*.sh
+*.txt
+*.uri
