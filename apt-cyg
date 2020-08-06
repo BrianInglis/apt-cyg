@@ -208,7 +208,7 @@ function find-workspace {
 
   /bin/mkdir -p "$cachedir/$mirrordir/$arch"
   cd "$cachedir/$mirrordir/$arch"
-  if [ -e setup.ini ]
+  if [ -e $setup_ini ]
   then
     return 0
   else
@@ -228,24 +228,24 @@ function get-setup {
     exit 2
   fi
   [ -e setup ] && /bin/mv setup setup.save
-  [ ! -e setup.ini ] && touch setup.ini
-  /bin/mv setup.ini setup.ini-save
-  wget https://cygwin.com/key/pubring.asc
-  if [ ! -r pubring.asc ] || [ ! -s pubring.asc ]; then
-    warn "pubring.asc: not found, cannot verify setup signatures"
+  [ ! -e $setup_ini ] && touch $setup_ini
+  /bin/mv $setup_ini $setup_ini-save
+  wget https://cygwin.com/key/$pubring_asc
+  if [ ! -r $pubring_asc ] || [ ! -s $pubring_asc ]; then
+    warn "$pubring_asc: not found, cannot verify setup signatures"
     exit 2
   fi
-  gpgopts="--batch --no-secmem-warning --keyring ./pubring.asc --verify --"
-  hash=/usr/bin/sha512sum
-  sum=sha512.sum
+  gpgopts="--batch --no-secmem-warning --keyring ./$pubring_asc --verify --"
+# hash=/usr/bin/sha512sum
+# sum=sha512.sum
   wget $mirror$arch/$sum
   if [ ! -r $sum ] || [ ! -s $sum ]; then
-    warn "sha512.sum: not found, cannot check setup hashes"
+    warn "$sum: not found, cannot check setup hashes"
 #   exit 2
   fi
-  wget $mirror$arch/setup.ini.sig
-  if [ ! -r setup.ini.sig ] || [ ! -s setup.ini.sig ]; then
-    warn "setup.ini.sig: not found, cannot verify setup.ini signature"
+  wget $mirror$arch/$setup_ini.sig
+  if [ ! -r $setup_ini.sig ] || [ ! -s $setup_ini.sig ]; then
+    warn "$setup_ini.sig: not found, cannot verify $setup_ini signature"
     exit 2
   fi
   for decomp in unxz unzstd bunzip2; do
@@ -259,9 +259,9 @@ function get-setup {
       wget $mirror$arch/setup.$dsuf
       if [ -r setup.$dsuf.sig ] && [ -s setup.$dsuf.sig ] && \
 	  [ -r setup.$dsuf ] && [ -s setup.$dsuf ]; then
-	msg "gpg: setup.$dsuf: verifying sig setup.$dsuf.sig, key pubring.asc..."
+	msg "gpg: setup.$dsuf: verifying sig setup.$dsuf.sig, key $pubring_asc..."
 	if ! $gpg $gpgopts setup.$dsuf.sig setup.$dsuf; then
-	  warn "gpg: setup.$dsuf: verify rc $?, sig setup.$dsuf.sig, key pubring.asc"
+	  warn "gpg: setup.$dsuf: verify rc $?, sig setup.$dsuf.sig, key $pubring_asc"
 	else
 	  if ! /usr/bin/$decomp -dfk -- setup.$dsuf; then
 	    warn "$decomp: setup.$dsuf: decompress failed, rc $?"
@@ -271,19 +271,19 @@ function get-setup {
     fi
   done
   if [ -e setup ]; then
-    /bin/mv -f setup setup.ini
+    /bin/mv -f setup $setup_ini
   else
-    wget $mirror$arch/setup.ini
+    wget $mirror$arch/$setup_ini
   fi
-  if [ ! -r setup.ini ] || [ ! -s setup.ini ]; then
-    warn "setup.ini: not found; cannot update, reverting"
-    /bin/mv -f -- setup.ini-save setup.ini
+  if [ ! -r $setup_ini ] || [ ! -s $setup_ini ]; then
+    warn "$setup_ini: not found; cannot update, reverting"
+    /bin/mv -f -- $setup_ini-save $setup_ini
     return 2
   fi
-  msg "gpg: setup.ini: verifying sig setup.ini.sig, key pubring.asc..."
-  if ! $gpg $gpgopts setup.ini.sig setup.ini; then
+  msg "gpg: $setup_ini: verifying sig $setup_ini.sig, key $pubring_asc..."
+  if ! $gpg $gpgopts $setup_ini.sig $setup_ini; then
     gpgrc=$?
-    warn "gpg: setup.ini: verify rc $?, sig setup.ini.sig, key pubring.asc"
+    warn "gpg: $setup_ini: verify rc $?, sig $setup_ini.sig, key $pubring_asc"
     exit $gpgrc
   fi
   if [ -s $sum ]; then
@@ -293,7 +293,7 @@ function get-setup {
 #     exit 1
     fi
   fi
-  msg "setup.ini: up to date"
+  msg "$setup_ini: up to date"
 }
 
 function check-packages {
@@ -317,7 +317,7 @@ function apt-update {
 function show-categories {
   find-workspace
   msg "Categories:"
-  /bin/sed '/^category:\s*/!d;s///;s/\s\+/\n/g' setup.ini | sort -fu | pr -5T
+  /bin/sed '/^category:\s*/!d;s///;s/\s\+/\n/g' $setup_ini | sort -fu | pr -5T
 }
 
 function apt-category {
@@ -336,7 +336,7 @@ function apt-category {
     $1 == "category:" && $0 ~ query {
       print pck
     }
-    ' query="$pkg" setup.ini
+    ' query="$pkg" $setup_ini
   done
 }
 
@@ -358,14 +358,19 @@ function upgradable {
     # setup for installed packages
     FNR < NR && ($1 in inst) {
       ++pkg_check;
-      for (l = 2; l <= NF && $l !~ /^install:\s/; ++l) {
+      i = "";
+      for (l = 2; l <= NF; ++l) {
 	if ($l ~ /^requires:\s/)  { r = substr( $l, 11); }
 	if ($l ~ /^version:\s/)   { v = substr( $l, 10); }
+        if ($l ~ /^install:\s/)	  { i = substr( $l, 10); }
+	if ($l ~ /^depends2:\s/)  {
+	  r = substr( $l, 11);
+	  r = gensub( /,/, "", "g", r);
+	}
 	if ($l ~ /^\[prev]$/)     { break; }
       }
       # install: arch-tar-xz size sha512sum
-      if ($l ~ /^install:\s/) {
-	i = substr( $l, 10);
+      if (i) {
 	f = i;
 	sub( /\s.*$/, "", f);		# strip trailing fields
 	gsub( /.*\//, "", f);		# strip leading path
@@ -430,7 +435,7 @@ function upgradable {
 	      int( size ), substr( " KMGTP", u, 1)) > "/dev/stderr";
       }
     }
-    ' arch="$arch" $installed setup.ini
+    ' arch="$arch" $installed_db $setup_ini
 }
 
 function apt-listall {
@@ -459,7 +464,7 @@ function apt-listall {
     END {
       exit !fd;			# success if found else failure
     }
-    ' RS='\n\n@ ' FS='\n' query="$pc" setup.ini
+    ' RS='\n\n@ ' FS='\n' query="$pc" $setup_ini
 }
 
 function apt-list {
@@ -484,7 +489,7 @@ function apt-list {
     END {
       exit !fd;			# success if found else failure
     }
-  ' arch="$arch" query="$pc" $installed && sbq=$?
+  ' arch="$arch" query="$pc" $installed_db && sbq=$?
 
 # default to no packages not all packages like apt
   [ $sbq -eq 0 ] || apt-listall		# if none installed check all packages
@@ -530,7 +535,7 @@ function apt-show {
 
 	exit !fd
       }
-      ' RS='\n\n@ ' FS='\n' query="$pkg" setup.ini
+      ' RS='\n\n@ ' FS='\n' query="$pkg" $setup_ini
   done
 }
 
@@ -546,8 +551,14 @@ function apt-depends {
 	apg = $2
       }
       $1 == "requires:" {
-	for (z=2; z<=NF; z++)
+	for (z = 2; z <= NF; ++z)
 	  reqs[apg][z-1] = $z
+      }
+      $1 == "depends2:" {
+	for (z = 2; z <= NF; ++z)
+	  reqs[apg][z-1] = gensub( /,/, "", "g", $z)
+	for (z; z <= length(reqs[apg]); ++z)
+	  reqs[apg][z] = ""	# clear trailing requires
       }
       END {
 	prpg(ENVIRON["pkg"])
@@ -566,7 +577,7 @@ function apt-depends {
 	    prpg(reqs[fpg][each])
 	delete spath[length(spath)]
       }
-      ' setup.ini
+      ' $setup_ini
   done
 }
 
@@ -577,15 +588,14 @@ function apt-rdepends {
   do
     /usr/bin/awk '
       @include "join"
-      $1 == "@" {
-	apg = $2
-      }
-      $1 == "requires:" {
-	for (z=2; z<=NF; z++)
-	  reqs[$z][length(reqs[$z])+1] = apg
-      }
-      END {
-	prpg(ENVIRON["pkg"])
+      function add(d, apg,	r, nz, z) {
+	if (d && apg) {
+	  nz = split( d, r, " ")
+	  for (z = 1; z <= nz; ++z) {
+	    reqs[r[z]][length(reqs[r[z]])+1] = apg
+	  }
+	}
+        return
       }
       function smartmatch(small, large,    values) {
 	for (each in large)
@@ -601,7 +611,20 @@ function apt-rdepends {
 	    prpg(reqs[fpg][each])
 	delete spath[length(spath)]
       }
-      ' setup.ini
+      $1 == "@" {
+	add(d, apg)
+	apg = $2
+      }
+      $1 == "requires:" { d = substr( $0, 11) }
+      $1 == "depends2:" {
+	d = substr( $0, 11)
+	d = gensub( /,/, "", "g", d)
+      }
+      END {
+	add(d, apg)
+	prpg(ENVIRON["pkg"])
+      }
+      ' $setup_ini
   done
 }
 
@@ -610,7 +633,7 @@ function download {
   pkg="$1"
   # look for package and save desc file
 
-  /usr/bin/awk '$1 == pc' RS='\n\n@ ' FS='\n' pc="$pkg" setup.ini > desc
+  /usr/bin/awk '$1 == pc' RS='\n\n@ ' FS='\n' pc="$pkg" $setup_ini > desc
   if [ ! -s desc ]
   then
     warn "$pkg: not found"
@@ -630,12 +653,12 @@ function download {
   dn=${2%/*}
   bn=${2##*/}
 
-  # check the md5
+  # check the hash
   digest=$4
-  case ${#digest} in
-   32) hash=/usr/bin/md5sum; sum=md5.sum;;
-  128) hash=/usr/bin/sha512sum; sum=sha512.sum;;
-  esac
+# case ${#digest} in
+#  32) hash=/usr/bin/md5sum; sum=md5.sum;;
+# 128) hash=/usr/bin/sha512sum; sum=sha512.sum;;
+# esac
 
   /bin/mkdir -p "$cachedir/$mirrordir/$dn"
   cd "$cachedir/$mirrordir/$dn"
@@ -719,7 +742,7 @@ function apt-install {
   for pkg in "${pks[@]}"
   do
     # indent package loop code
-    if /bin/grep -qe "^$pkg\s" -- $installed
+    if /bin/grep -qe "^$pkg\s" -- $installed_db
     then
       msg "$pkg: package already installed, skipping"
       continue
@@ -747,9 +770,9 @@ function apt-install {
     END {
       if (ins != 1) print pkg, bz, pick
     }
-    ' pkg="$pkg" bz=${bn/.xz/.bz2} pick=$pick $installed > $installed.$$
-    /bin/mv -f $installed $installed-save
-    /bin/mv -f $installed.$$ $installed
+    ' pkg="$pkg" bz=${bn/.xz/.bz2} pick=$pick $installed_db > $installed_db.$$
+    /bin/mv -f $installed_db $installed_db-save
+    /bin/mv -f $installed_db.$$ $installed_db
     [ ! -v ins ] && ins=0
     (( ins++ ))
 
@@ -757,7 +780,10 @@ function apt-install {
     [ -v nodeps ] && continue
 
     # recursively install required packages
-    requires=$(/usr/bin/awk '$1=="requires", $0=$2' FS=': ' desc)
+    requires=$(/usr/bin/awk '
+		$1=="requires",$0=$2
+		$1=="depends2",$0=gensub(/,/,"","g",$2)
+		' FS=': ' desc)
     cd ~-
     wr=0
 
@@ -768,7 +794,7 @@ function apt-install {
 
       for package in $requires
       do
-	if /bin/grep -qe "^$package\s" -- $installed
+	if /bin/grep -qe "^$package\s" -- $installed_db
 	then
 	  msg "$package: package already installed, skipping..."
 	  continue
@@ -816,7 +842,7 @@ function apt-remove {
 
   for pkg in "${pks[@]}"
   do
-    if ! /bin/grep -qe "^$pkg\s" -- $installed
+    if ! /bin/grep -qe "^$pkg\s" -- $installed_db
     then
       warn "$pkg: not installed; cannot remove, skipping"
       continue
@@ -882,7 +908,7 @@ function apt-remove {
       /bin/rmdir --ignore-fail-on-non-empty -- ${d[*]}
 
     /bin/rm -f -- $etc_setup/$pkg.lst
-    /bin/sed -i -e '/^'"$pkg"'\s/d' -- $installed
+    /bin/sed -i -e '/^'"$pkg"'\s/d' -- $installed_db
     msg "$pkg: removed"
   done
 }
@@ -892,7 +918,7 @@ function cyg-source {
   pkg=$1
   # look for package and save desc file
 
-  /usr/bin/awk '$1 == query' RS='\n\n@ ' FS='\n' query="$pkg" setup.ini > desc
+  /usr/bin/awk '$1 == query' RS='\n\n@ ' FS='\n' query="$pkg" $setup_ini > desc
   if [ ! -s desc ]
   then
     warn "$pkg: package description not found; obsolete package?"
@@ -912,12 +938,12 @@ function cyg-source {
   dn=${2%/*}
   bn=${2##*/}
 
-  # check the md5
+  # check the hash
   digest=$4
-  case ${#digest} in
-   32) hash=/usr/bin/md5sum; sum=md5.sum;;
-  128) hash=/usr/bin/sha512sum; sum=sha512.sum;;
-  esac
+# case ${#digest} in
+#  32) hash=/usr/bin/md5sum; sum=md5.sum;;
+# 128) hash=/usr/bin/sha512sum; sum=sha512.sum;;
+# esac
 
   pushd ~-	# back to user directory
 
@@ -963,8 +989,7 @@ function cyg-source {
 	cd $spdn/
 
 	if [ -r $pkg*.cygport ]; then
-	  requires=$(/bin/sed '/^[^#]*DEPEND=/!d;s//cygport /;s/['\'\"']//g' \
-			$pkg*.cygport)
+	  requires=$(. $pkg*.cygport; echo cygport ${DEPEND:-${DEPENDS:-$BUILD_REQUIRES}})
 	  requires=${requires:-cygport}
 	  msg "$pkg: building requires the following packages, installing..."
 	  msg "$requires"
@@ -1236,12 +1261,16 @@ do
 done
 
 set -a
+readonly hash=/usr/bin/sha512sum
+readonly sum=sha512.sum
+readonly setup_ini=setup.ini
+readonly pubring_asc=pubring.asc
 readonly arch=${HOSTTYPE/i[3-7]/x}
 readonly etc_preremove=${SYSCONFDIR:-/etc}/preremove
 readonly etc_postinstall=${SYSCONFDIR:-/etc}/postinstall
 readonly etc_setup=${SYSCONFDIR:-/etc}/setup
 readonly setup_rc=$etc_setup/setup.rc
-readonly installed=$etc_setup/installed.db
+readonly installed_db=$etc_setup/installed.db
 readonly essential=$etc_setup/essential.lst
 
 if type -t apt-$command | /bin/grep -qe function --
