@@ -134,21 +134,21 @@ Quick start
 
 **`apt-cyg`** is a simple script. To download and install:
 
-    `curl -JORSs https://github.com/BrianInglis/apt-cyg/raw/master/apt-cyg`
+`curl -JORSs https://github.com/BrianInglis/apt-cyg/raw/master/apt-cyg`
 
 **or**
 
-    `lynx -source https://github.com/BrianInglis/apt-cyg/raw/master/apt-cyg > apt-cyg`
+`lynx -source https://github.com/BrianInglis/apt-cyg/raw/master/apt-cyg > apt-cyg`
 
 **or**
 
-    `wget -N https://github.com/BrianInglis/apt-cyg/raw/master/apt-cyg`
+`wget -N https://github.com/BrianInglis/apt-cyg/raw/master/apt-cyg`
 
 **and**
 
-    `install apt-cyg /usr/local/sbin/`
+`install apt-cyg /usr/local/sbin/`
 
 Example use of **`apt-cyg`**:
 
-    `/usr/local/sbin/apt-cyg install nano`
+`/usr/local/sbin/apt-cyg install nano`
 
