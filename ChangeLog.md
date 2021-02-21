@@ -1,3 +1,7 @@
+2021-02-21 Brian Inglis
+* [48d8504](https://github.com/BrianInglis/apt-cyg/commit/48d8504)
+    apt-cyg: add setup.ini .zst archive support
+
 2020-08-06 Brian Inglis
 * [c2ecab9](https://github.com/BrianInglis/apt-cyg/commit/c2ecab9)
     apt-cyg: add msg function to use instead of echo, prefix messages with
@@ -7,7 +11,7 @@
     script if succeeds, do not attempt to remove null or root directories or
     paths from manifests,
 
-29 Jun 2017 Brian Inglis
+2017-06-29 Brian Inglis
 * [5124156](https://github.com/BrianInglis/apt-cyg/tree/5124156)
     apt-cyg: set explicit external command bin paths, double quote warning
     messages, cygpath cache dir internally, display arch for upgrades, return
