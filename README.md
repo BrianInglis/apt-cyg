@@ -6,8 +6,10 @@ It includes a command-line installer for **Cygwin** which
 cooperates with Cygwin **Setup** and uses the same repository.
 
 [apt-cyg][1]
+[original][2]
 
-[1]:https://github.com/transcode-open/apt-cyg
+[1]:https://github.com/BrianInglis/apt-cyg
+[2]:https://github.com/transcode-open/apt-cyg
 
 Operations
 ----------
@@ -130,12 +132,17 @@ Options
 Quick start
 -----------
 
-**apt-cyg** is a simple script. To install:
+**`apt-cyg`** is a simple script. To download and install:
 
-    lynx -source rawgit.com/transcode-open/apt-cyg/master/apt-cyg > apt-cyg
-    install apt-cyg /usr/local/sbin/
+    `curl -JORSs https://github.com/BrianInglis/apt-cyg/raw/master/apt-cyg`
+**or**
+    `lynx -source https://github.com/BrianInglis/apt-cyg/raw/master/apt-cyg > apt-cyg`
+**or**
+    `wget -N https://github.com/BrianInglis/apt-cyg/raw/master/apt-cyg`
 
-Example use of **apt-cyg**:
+    `install apt-cyg /usr/local/sbin/`
 
-    /usr/local/sbin/apt-cyg install nano
+Example use of **`apt-cyg`**:
+
+    `/usr/local/sbin/apt-cyg install nano`
 
