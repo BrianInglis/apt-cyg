@@ -135,10 +135,16 @@ Quick start
 **`apt-cyg`** is a simple script. To download and install:
 
     `curl -JORSs https://github.com/BrianInglis/apt-cyg/raw/master/apt-cyg`
+
 **or**
+
     `lynx -source https://github.com/BrianInglis/apt-cyg/raw/master/apt-cyg > apt-cyg`
+
 **or**
+
     `wget -N https://github.com/BrianInglis/apt-cyg/raw/master/apt-cyg`
+
+**and**
 
     `install apt-cyg /usr/local/sbin/`
 
