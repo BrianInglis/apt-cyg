@@ -351,6 +351,7 @@ function upgradable {
       inst[$1]	= $1;
       inst[$1,"file"] = $2;
       inst[$1,"pick"] = $3;
+###   print inst[$1], inst[$1,"file"], inst[$1,"pick"]	> "/dev/stderr";	###
     }
     # setup.ini
     FNR < NR && FNR == 1 { RS = "\n\n@ "; FS = "\n"; }
@@ -375,10 +376,12 @@ function upgradable {
 	sub( /\s.*$/, "", f);		# strip trailing fields
 	gsub( /.*\//, "", f);		# strip leading path
 	sub( /\.xz/, ".bz2", f);	# change xz to bz2
+	sub( /\.zst/, ".bz2", f);	# change zst to bz2
 	# fields: tar-bz2 pick ver arch-tar-xz size sha512sum depends...
 	pkg[$1] = sprintf( "%s %d %s %s %s", f, inst[$1,"pick"], v, i, r);
 	# upgrade if installed file does not match setup file
 	if (inst[$1,"file"] != f) {
+###	  print inst[$1], inst[$1,"file"], f, v, inst[$1,"pick"]	> "/dev/stderr";	###
 	  upgrade[$1] = $1;
 	  nf = split( r, p, " ");
 	  # upgrade required packages possibly
@@ -418,6 +421,7 @@ function upgradable {
       # fields: tar-bz2 pick ver arch-tar-xz size sha512sum depends...
 	nf = split( pkg[u], p, " ");
 	if (inst[u,"file"] != p[1]) {
+###	  print inst[u], inst[u,"file"], p[1], p[3], inst[u,"pick"]	> "/dev/stderr";	###
 	  arch = substr( p[4], 1, index( p[4], "/") - 1);
 	  l1 = length( u ) + 2;
 	  l2 = length( inst[u,"file"] ) - l1 - length( ".tar.bz2" ) + 1;
